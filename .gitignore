@@ -1,0 +1,29 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# typescript
+*.tsbuildinfo
+
+# env files: real values never go to git, only .env.example does
+.env
+.env*.local
+
+# uploads stored on local disk in development
+/media
+/receipts
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+.vercel

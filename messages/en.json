@@ -1,0 +1,88 @@
+{
+  "meta": {
+    "title": "Vetudy | Online veterinary courses",
+    "description": "Online courses for veterinarians in Egypt."
+  },
+  "nav": {
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out",
+    "adminPanel": "Dashboard",
+    "switchLanguage": "Change language"
+  },
+  "home": {
+    "title": "Learn veterinary medicine from leading doctors",
+    "subtitle": "Video courses taught by specialist veterinarians in Egypt, to watch any time and anywhere.",
+    "comingSoon": "Courses will be available here soon.",
+    "welcome": "Welcome, {name}",
+    "getStarted": "Create your account",
+    "haveAccount": "Already have an account?"
+  },
+  "auth": {
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "New password",
+      "phone": "Phone number (optional)"
+    },
+    "passwordHint": "At least {min} characters",
+    "login": {
+      "title": "Log in",
+      "description": "Enter your email and password.",
+      "submit": "Log in",
+      "noAccount": "No account yet?",
+      "forgot": "Forgot your password?"
+    },
+    "register": {
+      "title": "Sign up",
+      "description": "Create your account to start learning.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "successTitle": "Check your email",
+      "successBody": "We sent a verification link to {email}. Open it to activate your account, then log in."
+    },
+    "verify": {
+      "successTitle": "Your email is verified",
+      "successBody": "Your account is now active. You can log in.",
+      "failedTitle": "We could not verify your email",
+      "failedBody": "This link is invalid or was already used. If you already verified your email, you can log in."
+    },
+    "forgot": {
+      "title": "Forgot your password",
+      "description": "Enter your email and we will send you a link to set a new password.",
+      "submit": "Send link",
+      "sentTitle": "Check your email",
+      "sentBody": "If an account exists for this email, a message with a reset link is on its way.",
+      "backToLogin": "Back to log in"
+    },
+    "reset": {
+      "title": "Set a new password",
+      "description": "Choose a new password for your account.",
+      "submit": "Save password",
+      "missingTitle": "This link is incomplete",
+      "missingBody": "Open the link from the email again, or request a new one.",
+      "requestNew": "Request a new link"
+    }
+  },
+  "errors": {
+    "UNAUTHENTICATED": "Please log in first.",
+    "INVALID_CREDENTIALS": "The email or password is incorrect.",
+    "ACCOUNT_LOCKED": "This account is locked for a while after too many wrong attempts. Try again shortly.",
+    "FORBIDDEN": "You are not allowed to do this.",
+    "EMAIL_NOT_VERIFIED": "Verify your email first. Open the link we sent you.",
+    "INVALID_TOKEN": "This link is invalid or has expired. Request a new one.",
+    "NOT_FOUND": "We could not find what you asked for.",
+    "VALIDATION_FAILED": "Some of the details are not valid. Check them and try again.",
+    "PASSWORD_TOO_SHORT": "This password is too short.",
+    "EMAIL_TAKEN": "This email is already registered. Try logging in.",
+    "LAST_SUPERADMIN": "The last platform owner cannot be deleted or given another role.",
+    "TOO_MANY_REQUESTS": "Too many requests in a short time. Wait a moment and try again.",
+    "INTERNAL_ERROR": "Something went wrong. Please try again."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist or has moved.",
+    "home": "Back to home"
+  }
+}

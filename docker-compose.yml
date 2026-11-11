@@ -1,0 +1,35 @@
+# Local development services only. Production uses a managed database and real SMTP (Phase 5).
+name: vetudy
+
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: vetudy-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vetudy
+      POSTGRES_PASSWORD: vetudy
+      POSTGRES_DB: vetudy
+    ports:
+      # Host port 5433: 5432 is often taken by another project's database.
+      - '127.0.0.1:5433:5432'
+    volumes:
+      # Postgres 18 images keep their data under /var/lib/postgresql (not .../data).
+      - vetudy-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U vetudy -d vetudy']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Catches every email the app sends in development. Inbox: http://localhost:8025
+  mail:
+    image: axllent/mailpit:v1.29
+    container_name: vetudy-mail
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # web inbox
+
+volumes:
+  vetudy-db-data:
