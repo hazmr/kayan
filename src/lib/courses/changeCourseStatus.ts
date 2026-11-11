@@ -1,5 +1,6 @@
 import type { PayloadRequest } from 'payload'
 
+import { withTransaction } from '@/lib/db/withTransaction'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { AppError } from '@/lib/errors/AppError'
 import type { Course } from '@/payload-types'
@@ -58,20 +59,35 @@ export async function changeCourseStatus({
   if (isSendBack && trimmedNote === '') throw new AppError('REVIEW_NOTE_REQUIRED')
   if (to === 'in_review') await assertComplete(course, req)
 
-  return req.payload.update({
-    collection: 'courses',
-    id: course.id,
-    data: {
-      status: to,
-      // The note explains a send-back. It stays visible while the doctor fixes the course
-      // and is cleared once the course is published.
-      ...(isSendBack ? { reviewNote: trimmedNote } : {}),
-      ...(to === 'published' ? { reviewNote: null } : {}),
-    },
-    depth: 0,
-    // Validate against the Arabic content, which is the language every course must have.
-    locale: DEFAULT_LOCALE,
-    overrideAccess: true,
-    req,
+  return withTransaction(req, async () => {
+    const updated = await req.payload.update({
+      collection: 'courses',
+      id: course.id,
+      data: {
+        status: to,
+        // The note explains a send-back. It stays visible while the doctor fixes the course
+        // and is cleared once the course is published.
+        ...(isSendBack ? { reviewNote: trimmedNote } : {}),
+        ...(to === 'published' ? { reviewNote: null } : {}),
+      },
+      depth: 0,
+      // Validate against the Arabic content, which is the language every course must have.
+      locale: DEFAULT_LOCALE,
+      overrideAccess: true,
+      req,
+    })
+
+    // An archived course takes no new orders, so students who had only started buying are
+    // released. Orders with a receipt waiting stay: that money was already sent.
+    if (to === 'archived') {
+      await req.payload.update({
+        collection: 'orders',
+        where: { and: [{ course: { equals: course.id } }, { status: { equals: 'pending' } }] },
+        data: { status: 'cancelled' },
+        overrideAccess: true,
+        req,
+      })
+    }
+    return updated
   })
 }

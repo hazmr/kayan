@@ -27,6 +27,7 @@ import {
   guardProtectedFields,
   protectLastSuperadminOnChange,
   protectLastSuperadminOnDelete,
+  refuseDeleteWhenInUse,
   removeOwnerPromotions,
 } from './hooks'
 
@@ -72,7 +73,7 @@ export const Users: CollectionConfig = {
   hooks: {
     beforeOperation: [enforcePasswordLength],
     beforeChange: [guardProtectedFields, protectLastSuperadminOnChange],
-    beforeDelete: [protectLastSuperadminOnDelete, removeOwnerPromotions],
+    beforeDelete: [protectLastSuperadminOnDelete, refuseDeleteWhenInUse, removeOwnerPromotions],
   },
   endpoints: [changePasswordEndpoint, changeRoleEndpoint, deleteUserEndpoint, confirmOwnerEndpoint],
   fields: [

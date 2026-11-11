@@ -10,7 +10,13 @@ import { relationId } from '../shared/relationId'
 import { requireArabic } from '../shared/requireArabic'
 import { slugField } from '../shared/slug'
 import { courseEndpoints } from './endpoints'
-import { deleteCourseContent, fillSlug, requireDoctorOwner, setCreationDefaults } from './hooks'
+import {
+  deleteCourseContent,
+  fillSlug,
+  refuseDeleteWhenSold,
+  requireDoctorOwner,
+  setCreationDefaults,
+} from './hooks'
 
 const superadminField: FieldAccess = ({ req: { user } }) => isSuperadmin(user)
 
@@ -51,7 +57,7 @@ export const Courses: CollectionConfig = {
   hooks: {
     beforeValidate: [requireArabic(['title', 'description']), fillSlug, setCreationDefaults],
     beforeChange: [requireDoctorOwner],
-    beforeDelete: [deleteCourseContent],
+    beforeDelete: [refuseDeleteWhenSold, deleteCourseContent],
   },
   endpoints: courseEndpoints,
   fields: [

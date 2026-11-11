@@ -17,33 +17,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useRouter } from '@/i18n/navigation'
 import type { ApiResult } from '@/lib/api/postJson'
 import type { CourseStatus } from '@/lib/courses/transitions'
 import type { Localized } from '@/lib/dashboard/types'
-import type { ErrorCode } from '@/lib/errors/codes'
 
-/**
- * Runs one API call and tracks "busy" and "what went wrong" for the component using it.
- * On success it refreshes the page data, so the screen always shows what the server has.
- */
-export function useApiAction() {
-  const router = useRouter()
-  const [pending, setPending] = useState(false)
-  const [errorCode, setErrorCode] = useState<ErrorCode | null>(null)
-
-  async function run(request: () => Promise<ApiResult>): Promise<ApiResult> {
-    setPending(true)
-    setErrorCode(null)
-    const result = await request()
-    setPending(false)
-    if (result.ok) router.refresh()
-    else setErrorCode(result.code)
-    return result
-  }
-
-  return { run, pending, errorCode, clearError: () => setErrorCode(null) }
-}
+export { useApiAction } from '@/lib/api/useApiAction'
+import { useApiAction } from '@/lib/api/useApiAction'
 
 const STATUS_VARIANT: Record<CourseStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   draft: 'outline',

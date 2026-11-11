@@ -6,6 +6,7 @@ import { isStaff, isSuperadmin, roleOf } from '@/access/roles'
 import { DashboardNav, type NavItem } from '@/components/dashboard/DashboardNav'
 import { AccountMenu } from '@/components/site/AccountMenu'
 import { Link } from '@/i18n/navigation'
+import { countAwaitingReview, countRefundRequests } from '@/lib/dashboard/paymentQueries'
 import { countCoursesInReview } from '@/lib/dashboard/queries'
 import { requireDashboardUser } from '@/lib/dashboard/requireUser'
 
@@ -22,8 +23,24 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const coursesItem: NavItem = { href: '/dashboard/courses', label: t('courses'), icon: 'courses' }
   const items: NavItem[] = [coursesItem]
   if (staff) {
-    const waiting = await countCoursesInReview(user)
-    if (waiting > 0) coursesItem.badge = String(waiting)
+    const [inReview, receipts, refunds] = await Promise.all([
+      countCoursesInReview(user),
+      countAwaitingReview(user),
+      countRefundRequests(user),
+    ])
+    if (inReview > 0) coursesItem.badge = String(inReview)
+    items.push({
+      href: '/dashboard/payments',
+      label: t('payments'),
+      icon: 'payments',
+      badge: receipts > 0 ? String(receipts) : undefined,
+    })
+    items.push({
+      href: '/dashboard/refunds',
+      label: t('refunds'),
+      icon: 'refunds',
+      badge: refunds > 0 ? String(refunds) : undefined,
+    })
     items.push({ href: '/dashboard/categories', label: t('categories'), icon: 'categories' })
     items.push({ href: '/dashboard/users', label: t('users'), icon: 'users' })
   }

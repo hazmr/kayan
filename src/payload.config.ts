@@ -11,9 +11,13 @@ import { Categories } from '@/collections/Categories'
 import { Courses } from '@/collections/Courses'
 import { Lessons } from '@/collections/Lessons'
 import { Media } from '@/collections/Media'
+import { Enrollments } from '@/collections/Enrollments'
 import { Modules } from '@/collections/Modules'
+import { Orders } from '@/collections/Orders'
 import { OwnerPromotions } from '@/collections/OwnerPromotions'
+import { Receipts } from '@/collections/Receipts'
 import { Users } from '@/collections/Users'
+import { PaymentSettings } from '@/globals/PaymentSettings'
 import { PlatformSettings } from '@/globals/PlatformSettings'
 import { DEFAULT_LOCALE, isRtl, LOCALE_LABELS, LOCALES } from '@/i18n/locales'
 import { env } from '@/lib/env'
@@ -34,11 +38,25 @@ export default buildConfig({
     user: Users.slug,
   },
 
-  collections: [Courses, Modules, Lessons, Categories, Media, Users, OwnerPromotions],
-  globals: [PlatformSettings],
+  collections: [
+    Courses,
+    Modules,
+    Lessons,
+    Categories,
+    Media,
+    Users,
+    OwnerPromotions,
+    Orders,
+    Receipts,
+    Enrollments,
+  ],
+  globals: [PlatformSettings, PaymentSettings],
 
   // Resizes uploaded images (course thumbnails).
   sharp,
+
+  // Largest file the server accepts: 5 MB. Receipt screenshots and thumbnails both fit.
+  upload: { limits: { fileSize: 5 * 1024 * 1024 } },
 
   db: postgresAdapter({
     pool: {

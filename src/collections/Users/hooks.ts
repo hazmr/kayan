@@ -134,3 +134,33 @@ export const removeOwnerPromotions: CollectionBeforeDeleteHook = async ({ id, re
     req,
   })
 }
+
+/**
+ * An account that owns courses or has orders or enrollments stays, because those records
+ * (and the money history behind them) point at it. The owner would remove the access instead.
+ */
+export const refuseDeleteWhenInUse: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  const [courses, orders, enrollments] = await Promise.all([
+    req.payload.count({
+      collection: 'courses',
+      where: { owner: { equals: id } },
+      overrideAccess: true,
+      req,
+    }),
+    req.payload.count({
+      collection: 'orders',
+      where: { user: { equals: id } },
+      overrideAccess: true,
+      req,
+    }),
+    req.payload.count({
+      collection: 'enrollments',
+      where: { user: { equals: id } },
+      overrideAccess: true,
+      req,
+    }),
+  ])
+  if (courses.totalDocs + orders.totalDocs + enrollments.totalDocs > 0) {
+    throw new AppError('USER_HAS_RECORDS')
+  }
+}

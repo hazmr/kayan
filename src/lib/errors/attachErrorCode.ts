@@ -79,6 +79,9 @@ function codeForStatus(status: number): ErrorCode {
       return 'FORBIDDEN'
     case 404:
       return 'NOT_FOUND'
+    case 413:
+      // Payload's own upload limit (5 MB, set in payload.config.ts) answers before our code runs.
+      return 'RECEIPT_TOO_LARGE'
     case 429:
       return 'TOO_MANY_REQUESTS'
     default:

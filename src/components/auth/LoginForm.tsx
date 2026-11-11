@@ -12,7 +12,7 @@ import type { ErrorCode } from '@/lib/errors/codes'
 
 import { FormError } from './FormError'
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const t = useTranslations('auth')
   const router = useRouter()
   const [errorCode, setErrorCode] = useState<ErrorCode | null>(null)
@@ -34,8 +34,9 @@ export function LoginForm() {
       setPending(false)
       return
     }
-    // Payload set the login cookie. Go home and re-render the header with the user.
-    router.replace('/')
+    // Payload set the login cookie. Go back to where the visitor was heading (or home) and
+    // re-render the header with the user.
+    router.replace(next ?? '/')
     router.refresh()
   }
 

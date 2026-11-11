@@ -74,6 +74,9 @@ export interface Config {
     media: Media;
     users: User;
     'owner-promotions': OwnerPromotion;
+    orders: Order;
+    receipts: Receipt;
+    enrollments: Enrollment;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -95,6 +98,9 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'owner-promotions': OwnerPromotionsSelect<false> | OwnerPromotionsSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
+    receipts: ReceiptsSelect<false> | ReceiptsSelect<true>;
+    enrollments: EnrollmentsSelect<false> | EnrollmentsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -106,9 +112,11 @@ export interface Config {
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('ar' | 'en') | ('ar' | 'en')[];
   globals: {
     'platform-settings': PlatformSetting;
+    'payment-settings': PaymentSetting;
   };
   globalsSelect: {
     'platform-settings': PlatformSettingsSelect<false> | PlatformSettingsSelect<true>;
+    'payment-settings': PaymentSettingsSelect<false> | PaymentSettingsSelect<true>;
   };
   locale: 'ar' | 'en';
   widgets: {
@@ -308,6 +316,71 @@ export interface OwnerPromotion {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: string;
+  user: string | User;
+  course: string | Course;
+  owner?: (string | null) | User;
+  amount: number;
+  ownerAmount?: number | null;
+  amountFrozenAt?: string | null;
+  provider?: ('manual' | 'paymob') | null;
+  method?: ('instapay' | 'vodafone_cash') | null;
+  status: 'pending' | 'awaiting_review' | 'paid' | 'rejected' | 'refunded' | 'cancelled';
+  reference: string;
+  providerRef?: string | null;
+  paidAt?: string | null;
+  refundStatus: 'none' | 'requested' | 'declined';
+  refundReason?: string | null;
+  refundTo?: string | null;
+  refundRequestedAt?: string | null;
+  refundDecisionNote?: string | null;
+  refundedAt?: string | null;
+  refundedBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "receipts".
+ */
+export interface Receipt {
+  id: string;
+  order: string | Order;
+  senderNumber: string;
+  decision?: ('approved' | 'rejected') | null;
+  reviewNote?: string | null;
+  reviewedBy?: (string | null) | User;
+  reviewedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "enrollments".
+ */
+export interface Enrollment {
+  id: string;
+  user: string | User;
+  course: string | Course;
+  order: string | Order;
+  status: 'active' | 'revoked';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -357,6 +430,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'owner-promotions';
         value: string | OwnerPromotion;
+      } | null)
+    | ({
+        relationTo: 'orders';
+        value: string | Order;
+      } | null)
+    | ({
+        relationTo: 'receipts';
+        value: string | Receipt;
+      } | null)
+    | ({
+        relationTo: 'enrollments';
+        value: string | Enrollment;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -533,6 +618,68 @@ export interface OwnerPromotionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  user?: T;
+  course?: T;
+  owner?: T;
+  amount?: T;
+  ownerAmount?: T;
+  amountFrozenAt?: T;
+  provider?: T;
+  method?: T;
+  status?: T;
+  reference?: T;
+  providerRef?: T;
+  paidAt?: T;
+  refundStatus?: T;
+  refundReason?: T;
+  refundTo?: T;
+  refundRequestedAt?: T;
+  refundDecisionNote?: T;
+  refundedAt?: T;
+  refundedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "receipts_select".
+ */
+export interface ReceiptsSelect<T extends boolean = true> {
+  order?: T;
+  senderNumber?: T;
+  decision?: T;
+  reviewNote?: T;
+  reviewedBy?: T;
+  reviewedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "enrollments_select".
+ */
+export interface EnrollmentsSelect<T extends boolean = true> {
+  user?: T;
+  course?: T;
+  order?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -586,10 +733,32 @@ export interface PlatformSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-settings".
+ */
+export interface PaymentSetting {
+  id: string;
+  instapayAddress?: string | null;
+  vodafoneCashNumber?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "platform-settings_select".
  */
 export interface PlatformSettingsSelect<T extends boolean = true> {
   defaultOwnerSharePercent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-settings_select".
+ */
+export interface PaymentSettingsSelect<T extends boolean = true> {
+  instapayAddress?: T;
+  vodafoneCashNumber?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

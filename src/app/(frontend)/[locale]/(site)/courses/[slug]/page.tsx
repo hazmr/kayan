@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 
 import { CoursePrice } from '@/components/courses/CoursePrice'
+import { PurchaseBox } from '@/components/courses/PurchaseBox'
+import { getCurrentUser } from '@/lib/auth/getCurrentUser'
 import { getPublishedCourse } from '@/lib/catalog'
 
 interface PageProps {
@@ -17,7 +19,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function CoursePage({ params }: PageProps) {
-  const [{ slug }, locale, t] = await Promise.all([params, getLocale(), getTranslations('courses')])
+  const [{ slug }, locale, t, user] = await Promise.all([
+    params,
+    getLocale(),
+    getTranslations('courses'),
+    getCurrentUser(),
+  ])
   const course = await getPublishedCourse(slug, locale)
   // Drafts, courses in review, and archived courses look exactly like a missing page.
   if (!course) notFound()
@@ -90,8 +97,12 @@ export default async function CoursePage({ params }: PageProps) {
         </div>
         <div className="flex flex-col gap-2 px-4 pb-4">
           <CoursePrice priceEgp={course.priceEgp} className="text-2xl font-bold text-primary" />
-          {/* The buy / enroll button arrives with orders in milestone 3. */}
-          <p className="text-sm text-muted-foreground">{t('purchaseSoon')}</p>
+          <PurchaseBox
+            courseId={course.id}
+            slug={course.slug}
+            priceEgp={course.priceEgp}
+            user={user}
+          />
         </div>
       </aside>
     </article>

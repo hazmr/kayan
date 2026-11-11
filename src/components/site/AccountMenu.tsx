@@ -1,6 +1,6 @@
 'use client'
 
-import { Languages, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { Languages, LayoutDashboard, LogOut, ReceiptText, UserRound } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 
@@ -93,6 +93,12 @@ export function AccountMenu({ name, role, showDashboard, tone = 'dark' }: Accoun
               </Link>
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem asChild>
+            <Link href="/orders">
+              <ReceiptText aria-hidden />
+              {t('orders')}
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/account">
               <UserRound aria-hidden />

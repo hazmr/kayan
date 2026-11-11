@@ -1,11 +1,21 @@
 'use client'
 
-import { FolderTree, LayoutList, Settings, Users, type LucideIcon } from 'lucide-react'
+import {
+  CreditCard,
+  FolderTree,
+  LayoutList,
+  Settings,
+  Undo2,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 
 import { Link, usePathname } from '@/i18n/navigation'
 
 const ICONS = {
   courses: LayoutList,
+  payments: CreditCard,
+  refunds: Undo2,
   categories: FolderTree,
   users: Users,
   settings: Settings,

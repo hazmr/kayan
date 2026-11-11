@@ -79,3 +79,27 @@ export const deleteCourseContent: CollectionBeforeDeleteHook = async ({ id, req 
     req,
   })
 }
+
+/**
+ * A course that has orders or students is archived, never deleted: students keep access and
+ * the money records stay intact. (Orders also point at the course, so deleting would fail.)
+ */
+export const refuseDeleteWhenSold: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  const [orders, enrollments] = await Promise.all([
+    req.payload.count({
+      collection: 'orders',
+      where: { course: { equals: id } },
+      overrideAccess: true,
+      req,
+    }),
+    req.payload.count({
+      collection: 'enrollments',
+      where: { course: { equals: id } },
+      overrideAccess: true,
+      req,
+    }),
+  ])
+  if (orders.totalDocs > 0 || enrollments.totalDocs > 0) {
+    throw new AppError('COURSE_HAS_ENROLLMENTS')
+  }
+}

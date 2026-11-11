@@ -671,3 +671,21 @@ The pages only decide what to show. Every action is checked again by the API, ex
 | The dashboard has its own frame (dark sidebar, grey work area) instead of the public site header. Routes are split into `(site)` and `dashboard` under `[locale]`. | The dashboard should feel like its own workspace while keeping the brand. || Making someone an owner takes two steps: the owner's password, then a one-time link (30 minutes) emailed to that owner. It opens `/dashboard/confirm-owner`, which only shows the request; the change happens on Confirm (`POST /api/users/confirm-owner`). Pending requests live in the hidden `owner-promotions` collection, which stores only a hash of the token. | Giving full control of the platform needs proof of both the password and the owner's email. A button rather than an automatic change, because email scanners open links. |
 | The course form picks the category in two fields: main category, then an optional subcategory filtered to it. The saved value is still one `category`. | Clearer than one long grouped list. |
 
+### Changes made while building M3 (orders, payments, refunds)
+
+| Change | Why |
+|--------|-----|
+| `PaymentProvider.startPayment(order, { payload })` takes the Payload instance as a second argument. | Adapters read payment settings from the database, and importing the config inside an adapter creates an import cycle. |
+| `fulfillOrder(orderId, req)`, `refundOrder(orderId, req)` and the other order functions take the request. | They run inside a database transaction started from the request, and the Paymob webhook will have one too. |
+| Starting an order is "find or create": a student with an open order for the course gets that order back (`resumed: true`) instead of an error. The code `ORDER_ALREADY_OPEN` is not used. | A double click or a second tab should just continue the same payment. |
+| Concurrency is handled by locking rows (`SELECT ... FOR UPDATE`) inside a transaction: the student's row when starting an order, the order's row for every other change. A partial unique index in migration `open_order_index` is the safety net underneath. | Two managers pressing Approve together, or two clicks on Buy, must produce one result. |
+| While an order is pending its amount follows the course price and is refreshed whenever the order page loads. A receipt upload carries the amount the student saw; if the price moved, nothing is saved (`ORDER_PRICE_CHANGED`). The amount, the doctor's share, and the doctor lock when the receipt is accepted for review. | Decision D3 from Phase 1. |
+| A pending order whose course becomes free is completed when the student next opens it. | Otherwise they would be stuck on a payment of 0. |
+| A student can ask for a refund again after a decline. Free orders cannot be refunded. | Declines are case by case; there is nothing to return for a free course. |
+| Archiving a course cancels its pending orders. Orders with a receipt waiting stay. | The money was already sent for those. |
+| A course with orders or enrollments cannot be deleted (`COURSE_HAS_ENROLLMENTS`). An account that owns courses or has orders or enrollments cannot be deleted (`USER_HAS_RECORDS`). | Their records point at them. Archive the course instead. |
+| Receipt file names are random UUIDs, and receipts live in `receipts/` (not the public `media/`). | The name must not reveal who sent it. |
+| An upload over 5 MB is stopped by Payload's own limit; its 413 answer is mapped to `RECEIPT_TOO_LARGE`. | Payload answers before our code runs. |
+| Logging in can return the visitor to where they were (`?next=`), accepted only for paths on this site. | Buy -> log in -> straight back to checkout. |
+| The owner edits the InstaPay address and Vodafone Cash number on the dashboard settings page. A method with an empty field is hidden from students. | Decision from the access table: payment settings are owner-only. |
+
