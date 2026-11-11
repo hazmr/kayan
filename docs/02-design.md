@@ -689,3 +689,15 @@ The pages only decide what to show. Every action is checked again by the API, ex
 | Logging in can return the visitor to where they were (`?next=`), accepted only for paths on this site. | Buy -> log in -> straight back to checkout. |
 | The owner edits the InstaPay address and Vodafone Cash number on the dashboard settings page. A method with an empty field is hidden from students. | Decision from the access table: payment settings are owner-only. |
 
+### Changes made while building M4 (the lesson player)
+
+| Change | Why |
+|--------|-----|
+| `VideoProvider.getPlayback(videoId, { userId? })`: `userId` is optional. | Guests watch free previews (decision D8). |
+| The lesson page is a server component at `/courses/[slug]/lessons/[lessonId]`. `getWatchPage` loads the outline without video fields, decides access, and only then reads the video id and builds the embed URL. A locked page never has a video id in memory. | The embed URL must be resolved on the server after the access check and never appear in an API answer or a page for someone who may not watch. |
+| One rule decides access (`canWatch`): the whole course for staff, the course's doctor, and active enrollments; otherwise only a free preview of a published course. An archived course keeps its students. Orders are never read. | "Access is decided by enrollments only." |
+| A course that is not public (draft, in review, archived) is a 404 for people with no claim on it, even for a free-preview lesson. | It should not exist for them. |
+| Locked lessons are listed with a lock but are not links. Previous and next buttons appear only for lessons the person may open. | Fewer dead ends. |
+| YouTube is embedded through `youtube-nocookie.com` with a `strict-origin-when-cross-origin` referrer policy. | No tracking cookies until play, and the referrer YouTube asks for. |
+| The course page links the lessons a visitor may open, and enrolled students get a "Start learning" button. | Connects the purchase to the lessons. |
+

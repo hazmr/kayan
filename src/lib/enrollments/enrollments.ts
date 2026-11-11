@@ -1,4 +1,4 @@
-import type { PayloadRequest } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 import { relationId } from '@/collections/shared/relationId'
 import type { Enrollment, Order } from '@/payload-types'
@@ -65,9 +65,9 @@ export async function revokeEnrollment(order: Order, req: PayloadRequest): Promi
 export async function hasActiveEnrollment(
   userId: string,
   courseId: string,
-  req: Pick<PayloadRequest, 'payload'> & Partial<PayloadRequest>,
+  payload: Payload,
 ): Promise<boolean> {
-  const { totalDocs } = await req.payload.count({
+  const { totalDocs } = await payload.count({
     collection: 'enrollments',
     where: {
       and: [
@@ -77,7 +77,6 @@ export async function hasActiveEnrollment(
       ],
     },
     overrideAccess: true,
-    req: req as PayloadRequest,
   })
   return totalDocs > 0
 }

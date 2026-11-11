@@ -4,7 +4,8 @@ import { getPayload, type Where } from 'payload'
 import { relationId } from '@/collections/shared/relationId'
 import type { Locale } from '@/i18n/locales'
 import { piastersToEgp } from '@/lib/money'
-import type { Course } from '@/payload-types'
+import { hasFullCourseAccess } from '@/lib/enrollments/canWatchLesson'
+import type { Course, User } from '@/payload-types'
 
 import type { CategoryNode, CourseCardData, CourseDetail, ModuleOutline } from './types'
 
@@ -161,8 +162,18 @@ export async function getPublishedCourse(
     ...toCard(course),
     id: course.id,
     description: course.description ?? '',
+    ownerId: relationId(course.owner) ?? '',
     modules: outline,
     lessonCount: lessons.docs.length,
     totalSeconds: lessons.docs.reduce((sum, lesson) => sum + lesson.durationSeconds, 0),
   }
+}
+
+/** Does this visitor have the whole course (staff, its doctor, or an enrolled student)? */
+export async function hasFullAccessTo(
+  user: User | null,
+  course: Pick<CourseDetail, 'id' | 'ownerId'>,
+): Promise<boolean> {
+  const payload = await getPayload({ config })
+  return hasFullCourseAccess(user, { id: course.id, owner: course.ownerId }, payload)
 }

@@ -473,6 +473,27 @@
     "inReview": "دفعك قيد المراجعة",
     "viewOrder": "عرض الطلب",
     "noAccount": "جديد هنا؟",
-    "createAccount": "إنشاء حساب"
+    "createAccount": "إنشاء حساب",
+    "startLearning": "ابدأ التعلم"
+  },
+  "watch": {
+    "back": "العودة إلى الدورة",
+    "previous": "الدرس السابق",
+    "next": "الدرس التالي",
+    "lessonOf": "الدرس {number} من {total}",
+    "contents": "محتوى الدورة",
+    "minutes": "{count} د",
+    "freePreview": "معاينة مجانية",
+    "lockedTitle": "هذا الدرس جزء من الدورة",
+    "lockedBody": "اشترِ الدورة لمشاهدة جميع الدروس. الدروس المعلّمة كمعاينة مجانية متاحة للجميع.",
+    "lockedFree": "اشترك مجاناً لمشاهدة جميع دروس هذه الدورة.",
+    "lockedGuest": "سجّل الدخول أو أنشئ حساباً للمتابعة.",
+    "buy": "اشترِ الدورة",
+    "enroll": "اشترك مجاناً",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "videoTitle": "فيديو: {title}",
+    "startLearning": "ابدأ التعلم",
+    "lockedLesson": "مقفل"
   }
 }

@@ -473,6 +473,27 @@
     "inReview": "Your payment is under review",
     "viewOrder": "View order",
     "noAccount": "New here?",
-    "createAccount": "Create an account"
+    "createAccount": "Create an account",
+    "startLearning": "Start learning"
+  },
+  "watch": {
+    "back": "Back to the course",
+    "previous": "Previous lesson",
+    "next": "Next lesson",
+    "lessonOf": "Lesson {number} of {total}",
+    "contents": "Course content",
+    "minutes": "{count} min",
+    "freePreview": "Free preview",
+    "lockedTitle": "This lesson is part of the course",
+    "lockedBody": "Buy the course to watch every lesson. Lessons marked as a free preview are open to everyone.",
+    "lockedFree": "Enroll for free to watch every lesson in this course.",
+    "lockedGuest": "Log in or create an account to continue.",
+    "buy": "Buy the course",
+    "enroll": "Enroll for free",
+    "login": "Log in",
+    "register": "Create an account",
+    "videoTitle": "Video: {title}",
+    "startLearning": "Start learning",
+    "lockedLesson": "Locked"
   }
 }

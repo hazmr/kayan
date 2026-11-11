@@ -31,6 +31,7 @@ export interface ModuleOutline {
 
 export interface CourseDetail extends CourseCardData {
   id: string
+  ownerId: string
   description: string
   modules: ModuleOutline[]
   lessonCount: number

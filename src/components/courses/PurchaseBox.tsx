@@ -10,10 +10,18 @@ interface PurchaseBoxProps {
   slug: string
   priceEgp: number
   user: User | null
+  /** Where "Start learning" goes for a student who owns the course. */
+  firstLessonId?: string
 }
 
 /** The button under the price: what a visitor can do about this course, given who they are. */
-export async function PurchaseBox({ courseId, slug, priceEgp, user }: PurchaseBoxProps) {
+export async function PurchaseBox({
+  courseId,
+  slug,
+  priceEgp,
+  user,
+  firstLessonId,
+}: PurchaseBoxProps) {
   const [t, state] = await Promise.all([getTranslations('buy'), getPurchaseState(user, courseId)])
   const isFree = priceEgp === 0
   const checkout = `/checkout/${slug}`
@@ -38,9 +46,16 @@ export async function PurchaseBox({ courseId, slug, priceEgp, user }: PurchaseBo
 
   if (state.kind === 'enrolled') {
     return (
-      <p className="rounded-lg bg-primary/10 p-3 text-center text-sm font-medium text-primary">
-        {t('owned')}
-      </p>
+      <div className="flex flex-col gap-2">
+        <p className="rounded-lg bg-primary/10 p-3 text-center text-sm font-medium text-primary">
+          {t('owned')}
+        </p>
+        {firstLessonId && (
+          <Button asChild size="lg">
+            <Link href={`/courses/${slug}/lessons/${firstLessonId}`}>{t('startLearning')}</Link>
+          </Button>
+        )}
+      </div>
     )
   }
 
