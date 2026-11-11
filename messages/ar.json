@@ -143,7 +143,9 @@
       "logout": "تسجيل الخروج",
       "menu": "قائمة لوحة التحكم",
       "payments": "المدفوعات",
-      "refunds": "الاسترداد"
+      "refunds": "الاسترداد",
+      "orders": "الطلبات",
+      "sales": "المبيعات"
     },
     "common": {
       "save": "حفظ",
@@ -364,6 +366,31 @@
       "markTitle": "تأكيد الاسترداد؟",
       "markBody": "لا تفعل ذلك إلا بعد أن ترسل {amount} إلى {student}. سيتم إيقاف وصوله إلى الدورة وسيصله بريد إلكتروني.",
       "markConfirm": "نعم، أرسلته"
+    },
+    "ordersPage": {
+      "title": "الطلبات",
+      "salesTitle": "المبيعات",
+      "help": "كل الطلبات على المنصة. ابحث برقم الطلب أو اسم الطالب أو بريده الإلكتروني.",
+      "salesHelp": "طلبات دوراتك. ترى اسم كل طالب والمبلغ ونصيبك منه.",
+      "searchPlaceholder": "رقم الطلب أو الاسم أو البريد",
+      "all": "الكل",
+      "empty": "لا توجد طلبات مطابقة.",
+      "salesEmpty": "لا توجد مبيعات بعد.",
+      "colReference": "رقم الطلب",
+      "colStudent": "الطالب",
+      "colCourse": "الدورة",
+      "colAmount": "المبلغ",
+      "colShare": "نصيبك",
+      "colMethod": "الوسيلة",
+      "colStatus": "الحالة",
+      "colDate": "التاريخ",
+      "refundAsked": "طلب استرداد",
+      "page": "الصفحة {page} من {pages}",
+      "previous": "السابق",
+      "next": "التالي",
+      "total": "{count, plural, one {طلب واحد} two {طلبان} few {# طلبات} many {# طلباً} other {# طلب}}",
+      "nav": "الطلبات",
+      "navSales": "المبيعات"
     }
   },
   "menu": {
@@ -379,7 +406,8 @@
       "student": "طالب"
     },
     "logout": "تسجيل الخروج",
-    "orders": "طلباتي"
+    "orders": "طلباتي",
+    "myCourses": "دوراتي"
   },
   "orderStatus": {
     "pending": "بانتظار الدفع",
@@ -495,5 +523,17 @@
     "videoTitle": "فيديو: {title}",
     "startLearning": "ابدأ التعلم",
     "lockedLesson": "مقفل"
+  },
+  "myCourses": {
+    "title": "دوراتي",
+    "empty": "لا تملك أي دورة بعد.",
+    "emptyHint": "تصفح الدورات وابدأ التعلم.",
+    "browse": "تصفح الدورات",
+    "continue": "متابعة التعلم",
+    "start": "ابدأ التعلم",
+    "coursePage": "صفحة الدورة",
+    "archivedNote": "لم تعد الدورة معروضة للبيع، لكن وصولك إليها كامل.",
+    "lessons": "{count, plural, =0 {لا توجد دروس} one {درس واحد} two {درسان} few {# دروس} many {# درساً} other {# درس}}",
+    "by": "بواسطة {name}"
   }
 }

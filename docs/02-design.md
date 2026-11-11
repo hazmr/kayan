@@ -701,3 +701,12 @@ The pages only decide what to show. Every action is checked again by the API, ex
 | YouTube is embedded through `youtube-nocookie.com` with a `strict-origin-when-cross-origin` referrer policy. | No tracking cookies until play, and the referrer YouTube asks for. |
 | The course page links the lessons a visitor may open, and enrolled students get a "Start learning" button. | Connects the purchase to the lessons. |
 
+### Changes made while building M5 (My courses and order views)
+
+| Change | Why |
+|--------|-----|
+| `/my-courses` lists every ACTIVE enrollment, including archived courses (with a note that the course is no longer sold). "Continue learning" opens the first lesson by position, not by creation order. A refund removes the course from the list at once. | Access is decided by enrollments only. |
+| One page, `/dashboard/orders`, with a view per role. Managers and the owner see every order (reference, student name and email, method, status), with search by reference, name, or email, status tabs, and pages of 25. A doctor sees "Sales": student name, course, amount, their share, status, and date, for orders in the statuses awaiting review, paid, and refunded. The menu calls it Orders or Sales. | Decisions D9 and the access table: doctors read orders for their own courses, name only. |
+| Doctors read orders through `listSalesForDoctor`, not through the API. It returns a `SaleRow` with no email, phone, method, receipt, refund details, or order reference. The reference is also kept out of React keys, because Next.js copies keys into the page data. | Privacy by construction: what is not in the type cannot reach the page. |
+| The account menu has My courses, My orders, My account, in that order; the home page links to My courses for logged-in users. | The student's main destinations. |
+

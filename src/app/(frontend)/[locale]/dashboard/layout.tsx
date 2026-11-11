@@ -22,6 +22,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Each role sees only the sections it can use.
   const coursesItem: NavItem = { href: '/dashboard/courses', label: t('courses'), icon: 'courses' }
   const items: NavItem[] = [coursesItem]
+  // Doctors see their own sales here; managers and the owner see every order.
+  const ordersItem: NavItem = {
+    href: '/dashboard/orders',
+    label: staff ? t('orders') : t('sales'),
+    icon: 'orders',
+  }
   if (staff) {
     const [inReview, receipts, refunds] = await Promise.all([
       countCoursesInReview(user),
@@ -41,9 +47,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       icon: 'refunds',
       badge: refunds > 0 ? String(refunds) : undefined,
     })
+    items.push(ordersItem)
     items.push({ href: '/dashboard/categories', label: t('categories'), icon: 'categories' })
     items.push({ href: '/dashboard/users', label: t('users'), icon: 'users' })
   }
+  if (!staff) items.push(ordersItem)
   if (isSuperadmin(user)) {
     items.push({ href: '/dashboard/settings', label: t('settings'), icon: 'settings' })
   }

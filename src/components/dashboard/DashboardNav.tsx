@@ -2,6 +2,7 @@
 
 import {
   CreditCard,
+  Receipt,
   FolderTree,
   LayoutList,
   Settings,
@@ -14,6 +15,7 @@ import { Link, usePathname } from '@/i18n/navigation'
 
 const ICONS = {
   courses: LayoutList,
+  orders: Receipt,
   payments: CreditCard,
   refunds: Undo2,
   categories: FolderTree,

@@ -143,7 +143,9 @@
       "logout": "Log out",
       "menu": "Dashboard menu",
       "payments": "Payments",
-      "refunds": "Refunds"
+      "refunds": "Refunds",
+      "orders": "Orders",
+      "sales": "Sales"
     },
     "common": {
       "save": "Save",
@@ -364,6 +366,31 @@
       "markTitle": "Mark as refunded?",
       "markBody": "Only do this after you have sent {amount} back to {student}. Their access to the course will be removed and they will get an email.",
       "markConfirm": "Yes, I sent it"
+    },
+    "ordersPage": {
+      "title": "Orders",
+      "salesTitle": "Sales",
+      "help": "Every order on the platform. Search by reference, student name, or email.",
+      "salesHelp": "Orders for your courses. You see each student's name, the amount, and your share.",
+      "searchPlaceholder": "Reference, name, or email",
+      "all": "All",
+      "empty": "No orders match.",
+      "salesEmpty": "No sales yet.",
+      "colReference": "Reference",
+      "colStudent": "Student",
+      "colCourse": "Course",
+      "colAmount": "Amount",
+      "colShare": "Your share",
+      "colMethod": "Method",
+      "colStatus": "Status",
+      "colDate": "Date",
+      "refundAsked": "Refund requested",
+      "page": "Page {page} of {pages}",
+      "previous": "Previous",
+      "next": "Next",
+      "total": "{count, plural, one {# order} other {# orders}}",
+      "nav": "Orders",
+      "navSales": "Sales"
     }
   },
   "menu": {
@@ -379,7 +406,8 @@
       "student": "Student"
     },
     "logout": "Log out",
-    "orders": "My orders"
+    "orders": "My orders",
+    "myCourses": "My courses"
   },
   "orderStatus": {
     "pending": "Waiting for payment",
@@ -495,5 +523,17 @@
     "videoTitle": "Video: {title}",
     "startLearning": "Start learning",
     "lockedLesson": "Locked"
+  },
+  "myCourses": {
+    "title": "My courses",
+    "empty": "You do not own any courses yet.",
+    "emptyHint": "Browse the catalog and start learning.",
+    "browse": "Browse courses",
+    "continue": "Continue learning",
+    "start": "Start learning",
+    "coursePage": "Course page",
+    "archivedNote": "No longer sold, but you keep full access.",
+    "lessons": "{count, plural, =0 {No lessons} one {# lesson} other {# lessons}}",
+    "by": "By {name}"
   }
 }

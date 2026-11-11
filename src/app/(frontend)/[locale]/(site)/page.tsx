@@ -8,9 +8,10 @@ import { listPublishedCourses } from '@/lib/catalog'
 
 export default async function HomePage() {
   const locale = await getLocale()
-  const [t, tCourses, user, courses] = await Promise.all([
+  const [t, tCourses, tMy, user, courses] = await Promise.all([
     getTranslations('home'),
     getTranslations('courses'),
+    getTranslations('myCourses'),
     getCurrentUser(),
     listPublishedCourses({ locale, limit: 6 }),
   ])
@@ -19,7 +20,15 @@ export default async function HomePage() {
     <>
       <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 py-16 text-center">
         {user && (
-          <p className="text-sm font-medium text-primary">{t('welcome', { name: user.name })}</p>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm font-medium text-primary">{t('welcome', { name: user.name })}</p>
+            <Link
+              href="/my-courses"
+              className="text-sm text-primary underline-offset-4 hover:underline"
+            >
+              {tMy('title')}
+            </Link>
+          </div>
         )}
         <h1 className="text-3xl leading-snug font-bold sm:text-4xl">{t('title')}</h1>
         <p className="text-lg text-muted-foreground">{t('subtitle')}</p>
