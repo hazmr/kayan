@@ -5,7 +5,7 @@ import { Cairo } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
-import { SiteHeader } from '@/components/site/SiteHeader'
+import { DirectionProvider } from '@/components/site/DirectionProvider'
 import { directionOf } from '@/i18n/locales'
 import { routing } from '@/i18n/routing'
 
@@ -41,9 +41,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
     // (start/end instead of left/right), so they follow it without extra code.
     <html lang={locale} dir={directionOf(locale)} className={cairo.variable}>
       <body className="min-h-dvh antialiased">
+        {/* The public site and the dashboard each add their own frame in their layouts. */}
         <NextIntlClientProvider>
-          <SiteHeader />
-          <main>{children}</main>
+          <DirectionProvider dir={directionOf(locale)}>{children}</DirectionProvider>
         </NextIntlClientProvider>
       </body>
     </html>

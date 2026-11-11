@@ -1,6 +1,6 @@
 # Vetudy
 
-Online course marketplace for veterinarians in Egypt. Next.js 16 and Payload CMS 3 in one app, PostgreSQL, Tailwind CSS, shadcn/ui.
+Online course marketplace for veterinarians in Egypt. Next.js 16 with Payload CMS 3 as the engine (database, login, access rules, API), PostgreSQL, Tailwind CSS, shadcn/ui.
 
 The plan and design live in [docs/](docs/): requirements first, then design.
 
@@ -17,26 +17,26 @@ SUPERADMIN_EMAIL=you@example.com SUPERADMIN_PASSWORD='a-long-password' pnpm supe
 pnpm dev
 ```
 
-| Address | What |
-|---------|------|
-| http://localhost:3000 | The site. Redirects to `/ar`. English is at `/en`. |
-| http://localhost:3000/admin | Admin panel for superadmin, managers, and doctors |
-| http://localhost:8025 | Mailpit: every email the app sends in development lands here |
+| Address                         | What                                                         |
+| ------------------------------- | ------------------------------------------------------------ |
+| http://localhost:3000           | The site. Redirects to `/ar`. English is at `/en`.           |
+| http://localhost:3000/dashboard | Our dashboard for the owner, managers, and doctors           |
+| http://localhost:8025           | Mailpit: every email the app sends in development lands here |
 
 Open the site as `localhost`, not `127.0.0.1`. Logged-in requests are only accepted from the address in `NEXT_PUBLIC_SITE_URL`.
 
 ## Everyday commands
 
-| Command | What it does |
-|---------|--------------|
-| `pnpm dev` | Start the development server |
-| `pnpm typecheck` | Check TypeScript types |
-| `pnpm lint` | Run ESLint |
-| `pnpm format` | Format the code with Prettier |
-| `pnpm build` | Production build |
-| `pnpm generate:types` | Regenerate `src/payload-types.ts` after changing a collection |
-| `pnpm migrate:create <name>` | Create a migration after changing a collection |
-| `pnpm migrate` | Apply migrations that have not run yet |
+| Command                      | What it does                                                  |
+| ---------------------------- | ------------------------------------------------------------- |
+| `pnpm dev`                   | Start the development server                                  |
+| `pnpm typecheck`             | Check TypeScript types                                        |
+| `pnpm lint`                  | Run ESLint                                                    |
+| `pnpm format`                | Format the code with Prettier                                 |
+| `pnpm build`                 | Production build                                              |
+| `pnpm generate:types`        | Regenerate `src/payload-types.ts` after changing a collection |
+| `pnpm migrate:create <name>` | Create a migration after changing a collection                |
+| `pnpm migrate`               | Apply migrations that have not run yet                        |
 
 ## Changing the database
 

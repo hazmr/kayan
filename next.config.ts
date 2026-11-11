@@ -10,6 +10,10 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
+  images: {
+    // Course thumbnails are served by Payload from this path.
+    localPatterns: [{ pathname: '/api/media/file/**' }],
+  },
   // Payload's packages import files with a .js extension that are really .ts files.
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {

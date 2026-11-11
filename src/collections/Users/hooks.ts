@@ -17,15 +17,17 @@ import type { User } from '@/payload-types'
 export const TRUSTED_USER_WRITE = 'trustedUserWrite'
 
 function isTrusted(req: PayloadRequest): boolean {
-  return req.context[TRUSTED_USER_WRITE] === true || isSuperadmin(req.user)
+  return req.context[TRUSTED_USER_WRITE] === true
 }
 
 /**
- * Role and email can only be changed by the superadmin.
+ * A role changes only through the role endpoint (src/collections/Users/endpoints.ts), which asks
+ * for the owner's password and emails everyone involved. That endpoint marks its request as
+ * trusted. Every other way of writing a role is refused here, including a normal save by the
+ * owner, so a role can never change by accident.
  *
- * Field-level access already strips `role` from normal API requests. This hook is the second
- * lock: it also covers code paths that skip access control, such as Payload's
- * "create first user" screen, which would otherwise accept any role.
+ * Accounts are created as students, except by the owner, who may create staff and doctors
+ * directly. Making someone an owner always goes through the endpoint.
  */
 export const guardProtectedFields: CollectionBeforeChangeHook<User> = ({
   data,
@@ -36,14 +38,17 @@ export const guardProtectedFields: CollectionBeforeChangeHook<User> = ({
   if (isTrusted(req)) return data
 
   if (operation === 'create') {
-    return { ...data, role: DEFAULT_ROLE }
+    const ownerIsCreating = isSuperadmin(req.user)
+    if (!ownerIsCreating) return { ...data, role: DEFAULT_ROLE }
+    if (data.role === 'superadmin') throw new AppError('FORBIDDEN')
+    return data
   }
 
   if (data.role !== undefined && data.role !== originalDoc?.role) {
     throw new AppError('FORBIDDEN')
   }
-  // Changing the email would skip verification, so users cannot change their own.
-  if (data.email !== undefined && data.email !== originalDoc?.email) {
+  // Changing the email would skip verification. Only the owner may correct one.
+  if (data.email !== undefined && data.email !== originalDoc?.email && !isSuperadmin(req.user)) {
     throw new AppError('FORBIDDEN')
   }
   return data
@@ -118,4 +123,14 @@ export const enforcePasswordLength: CollectionBeforeOperationHook = ({ args, ope
     }
   }
   return args
+}
+
+/** Owner-promotion requests point at users, so they go first when a user is deleted. */
+export const removeOwnerPromotions: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  await req.payload.delete({
+    collection: 'owner-promotions',
+    where: { or: [{ target: { equals: id } }, { requestedBy: { equals: id } }] },
+    overrideAccess: true,
+    req,
+  })
 }

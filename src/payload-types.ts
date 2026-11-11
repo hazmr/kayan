@@ -67,15 +67,34 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    courses: Course;
+    modules: Module;
+    lessons: Lesson;
+    categories: Category;
+    media: Media;
     users: User;
+    'owner-promotions': OwnerPromotion;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    courses: {
+      modules: 'modules';
+    };
+    modules: {
+      lessons: 'lessons';
+    };
+  };
   collectionsSelect: {
+    courses: CoursesSelect<false> | CoursesSelect<true>;
+    modules: ModulesSelect<false> | ModulesSelect<true>;
+    lessons: LessonsSelect<false> | LessonsSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'owner-promotions': OwnerPromotionsSelect<false> | OwnerPromotionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -85,8 +104,12 @@ export interface Config {
     defaultIDType: string;
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('ar' | 'en') | ('ar' | 'en')[];
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'platform-settings': PlatformSetting;
+  };
+  globalsSelect: {
+    'platform-settings': PlatformSettingsSelect<false> | PlatformSettingsSelect<true>;
+  };
   locale: 'ar' | 'en';
   widgets: {
     collections: CollectionsWidget;
@@ -114,6 +137,129 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses".
+ */
+export interface Course {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  category?: (string | null) | Category;
+  thumbnail?: (string | null) | Media;
+  price: number;
+  modules?: {
+    docs?: (string | Module)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  status: 'draft' | 'in_review' | 'published' | 'archived';
+  reviewNote?: string | null;
+  owner: string | User;
+  ownerSharePercent?: number | null;
+  /**
+   * Lowercase English letters, numbers, and dashes. Leave empty to generate one.
+   */
+  slug?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: string;
+  title?: string | null;
+  /**
+   * Leave empty for a main category. Choose one to make this a subcategory.
+   */
+  parent?: (string | null) | Category;
+  /**
+   * Lowercase English letters, numbers, and dashes. Leave empty to generate one.
+   */
+  slug?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "modules".
+ */
+export interface Module {
+  id: string;
+  title?: string | null;
+  course: string | Course;
+  /**
+   * Lower numbers come first.
+   */
+  position: number;
+  lessons?: {
+    docs?: (string | Lesson)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lessons".
+ */
+export interface Lesson {
+  id: string;
+  title?: string | null;
+  module: string | Module;
+  /**
+   * Filled in from the module.
+   */
+  course?: (string | null) | Course;
+  /**
+   * Lower numbers come first.
+   */
+  position: number;
+  videoProvider: 'youtube';
+  /**
+   * Only the ID, not the full link. For youtube.com/watch?v=abc123 the ID is abc123.
+   */
+  videoId: string;
+  durationSeconds: number;
+  /**
+   * Anyone can watch this lesson without buying the course.
+   */
+  isFreePreview?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -148,6 +294,20 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "owner-promotions".
+ */
+export interface OwnerPromotion {
+  id: string;
+  target: string | User;
+  requestedBy: string | User;
+  tokenHash: string;
+  expiresAt: string;
+  confirmedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -169,10 +329,35 @@ export interface PayloadKv {
  */
 export interface PayloadLockedDocument {
   id: string;
-  document?: {
-    relationTo: 'users';
-    value: string | User;
-  } | null;
+  document?:
+    | ({
+        relationTo: 'courses';
+        value: string | Course;
+      } | null)
+    | ({
+        relationTo: 'modules';
+        value: string | Module;
+      } | null)
+    | ({
+        relationTo: 'lessons';
+        value: string | Lesson;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: string | Category;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: string | Media;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: string | User;
+      } | null)
+    | ({
+        relationTo: 'owner-promotions';
+        value: string | OwnerPromotion;
+      } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
@@ -217,6 +402,96 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "courses_select".
+ */
+export interface CoursesSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  category?: T;
+  thumbnail?: T;
+  price?: T;
+  modules?: T;
+  status?: T;
+  reviewNote?: T;
+  owner?: T;
+  ownerSharePercent?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "modules_select".
+ */
+export interface ModulesSelect<T extends boolean = true> {
+  title?: T;
+  course?: T;
+  position?: T;
+  lessons?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lessons_select".
+ */
+export interface LessonsSelect<T extends boolean = true> {
+  title?: T;
+  module?: T;
+  course?: T;
+  position?: T;
+  videoProvider?: T;
+  videoId?: T;
+  durationSeconds?: T;
+  isFreePreview?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  title?: T;
+  parent?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -242,6 +517,19 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "owner-promotions_select".
+ */
+export interface OwnerPromotionsSelect<T extends boolean = true> {
+  target?: T;
+  requestedBy?: T;
+  tokenHash?: T;
+  expiresAt?: T;
+  confirmedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -282,6 +570,29 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings".
+ */
+export interface PlatformSetting {
+  id: string;
+  /**
+   * Copied onto each new course. Changing it does not affect existing courses.
+   */
+  defaultOwnerSharePercent: number;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "platform-settings_select".
+ */
+export interface PlatformSettingsSelect<T extends boolean = true> {
+  defaultOwnerSharePercent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

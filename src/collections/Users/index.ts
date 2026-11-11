@@ -17,10 +17,17 @@ import {
   superadminOnlyField,
 } from './access'
 import {
+  changePasswordEndpoint,
+  changeRoleEndpoint,
+  confirmOwnerEndpoint,
+  deleteUserEndpoint,
+} from './endpoints'
+import {
   enforcePasswordLength,
   guardProtectedFields,
   protectLastSuperadminOnChange,
   protectLastSuperadminOnDelete,
+  removeOwnerPromotions,
 } from './hooks'
 
 const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7
@@ -58,14 +65,16 @@ export const Users: CollectionConfig = {
     create: canCreateUser,
     read: canReadUser,
     update: canUpdateUser,
-    delete: superadminOnly,
+    // Deleting goes through the delete endpoint, which asks for the owner's password.
+    delete: () => false,
     unlock: superadminOnly,
   },
   hooks: {
     beforeOperation: [enforcePasswordLength],
     beforeChange: [guardProtectedFields, protectLastSuperadminOnChange],
-    beforeDelete: [protectLastSuperadminOnDelete],
+    beforeDelete: [protectLastSuperadminOnDelete, removeOwnerPromotions],
   },
+  endpoints: [changePasswordEndpoint, changeRoleEndpoint, deleteUserEndpoint, confirmOwnerEndpoint],
   fields: [
     // `email` and `password` are added by Payload because `auth` is enabled.
     {
@@ -89,7 +98,8 @@ export const Users: CollectionConfig = {
       saveToJWT: true,
       access: {
         create: superadminOnlyField,
-        update: superadminOnlyField,
+        // Never through a normal save: see the role endpoint.
+        update: () => false,
       },
     },
   ],

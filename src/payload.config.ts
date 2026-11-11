@@ -4,29 +4,41 @@ import { ar } from '@payloadcms/translations/languages/ar'
 import { en } from '@payloadcms/translations/languages/en'
 import path from 'path'
 import { buildConfig } from 'payload'
+import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
+import { Categories } from '@/collections/Categories'
+import { Courses } from '@/collections/Courses'
+import { Lessons } from '@/collections/Lessons'
+import { Media } from '@/collections/Media'
+import { Modules } from '@/collections/Modules'
+import { OwnerPromotions } from '@/collections/OwnerPromotions'
 import { Users } from '@/collections/Users'
+import { PlatformSettings } from '@/globals/PlatformSettings'
 import { DEFAULT_LOCALE, isRtl, LOCALE_LABELS, LOCALES } from '@/i18n/locales'
 import { env } from '@/lib/env'
 import { attachErrorCode } from '@/lib/errors/attachErrorCode'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
+// Our own errors (wrong state, not allowed, and so on) are expected outcomes, not crashes.
+// Log them as one info line instead of an error with a stack trace.
+const expectedErrorLevels = { AppError: 'info' } as const
+
 export default buildConfig({
   secret: env.payloadSecret,
 
+  // Payload is the engine only: database, login, access rules, and the API under /api.
+  // Its admin screens are not mounted. Our own dashboard lives in src/app/(frontend).
   admin: {
     user: Users.slug,
-    importMap: {
-      baseDir: path.resolve(dirname),
-    },
-    meta: {
-      titleSuffix: ' | Vetudy',
-    },
   },
 
-  collections: [Users],
+  collections: [Courses, Modules, Lessons, Categories, Media, Users, OwnerPromotions],
+  globals: [PlatformSettings],
+
+  // Resizes uploaded images (course thumbnails).
+  sharp,
 
   db: postgresAdapter({
     pool: {
@@ -81,6 +93,10 @@ export default buildConfig({
   hooks: {
     afterError: [attachErrorCode],
   },
+
+  // `Forbidden` is listed with its default level only because Payload's type for this option
+  // knows its own error names and rejects an object made of ours alone.
+  loggingLevels: { Forbidden: 'info', ...expectedErrorLevels },
 
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

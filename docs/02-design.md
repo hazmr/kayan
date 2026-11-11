@@ -625,3 +625,49 @@ A refunded order is no longer `paid`, so it drops out of the first sum. That is 
 | Payload refuses login until the email is verified | M1 |
 | The filtered unique index for one open order | M3 |
 | The row lock inside `fulfillOrder` and `refundOrder` | M3 |
+
+## 14. Changes made while building
+
+| Milestone | Change | Why |
+|-----------|--------|-----|
+| M1 | Error responses keep Payload's `errors` array and add `code` beside it (section 9). | The admin panel reads that array. |
+| M1 | Minimum password length is 8, enforced by a hook. | Payload's built-in minimum is 3 and cannot be configured. |
+| M1 | The first superadmin is created by `pnpm superadmin:create`. | Payload's "create first user" screen is open to whoever reaches a fresh server first. |
+| M2 | Managers and the superadmin can create a course for a doctor and must pick that doctor. Only the superadmin can change the owner afterwards. | A course needs a doctor as its owner. |
+| M2 | New error code `COURSE_OWNER_INVALID`. | The superadmin must pick a doctor account as owner. |
+| M2 | A doctor's price change after draft is ignored silently, not rejected. | The admin form always sends every field, so rejecting would break saving a title. |
+| M2 | Courses and modules list their modules and lessons inside the edit page. | Doctors build a course from one screen. |
+| M2 | `POST /api/users/change-password` asks for the current password. | Someone at an unlocked browser cannot quietly take over the account. |
+| M2 | A logged-in student who opens `/admin` is redirected to the site by `src/proxy.ts`. | Payload still refuses students itself; the redirect is a courtesy. |
+| After M2 | The Payload admin screens at `/admin` are removed. Doctors, managers, and the owner use our own dashboard at `/dashboard`, built with Next.js and shadcn/ui. Payload stays as the engine. This replaces the "Admin panel" table in section 7 and assumption A1. | The generated panel was hard to use: it showed data, not the next thing to do. |
+| After M2 | The dashboard saves Arabic and English in one request (`?locale=all`), and a hook checks that the Arabic value is present. | One form with both languages side by side, instead of switching language and saving twice. |
+
+### Dashboard routes (replace the "Admin panel" table in section 7)
+
+| Path | What | Who |
+|------|------|-----|
+| `/dashboard` | Redirects to the review queue (staff) or "My courses" (doctors) | owner, manager, doctor |
+| `/dashboard/courses` | Course list with status tabs | owner and manager: all. Doctor: own. |
+| `/dashboard/courses/new` | Create a course. Staff pick the doctor. | owner, manager, doctor |
+| `/dashboard/courses/[id]` | One screen: status and actions, details, modules and lessons | owner, manager, the course's doctor |
+| `/dashboard/categories` | Main categories and subcategories | owner, manager |
+| `/dashboard/users` | Users. Create, change role, delete. | owner manages, manager reads |
+| `/dashboard/settings` | Default doctor share | owner |
+
+The pages only decide what to show. Every action is checked again by the API, exactly as before.
+
+### Changes after the first dashboard review
+
+| Change | Why |
+|--------|-----|
+| Translated fields (titles, descriptions) are no longer `required` in Payload. A `requireArabic` hook requires the Arabic value instead. Migration `optional_english` drops the NOT NULL on the `*_locales` columns. | `required` on a translated field means "required in every language", so an empty English field failed and adding English to an existing course crashed. |
+| A role changes only through `POST /api/users/:id/role { role, password }`. The `role` field cannot be written by a normal save, even by the owner. | A role was changed by mistake with one click, and the owner removed their own access. |
+| An owner cannot change their own role or delete their own account (`SELF_CHANGE_NOT_ALLOWED`). Another owner has to. | Prevents locking yourself out. |
+| Role changes and user deletion ask for the owner's password (`WRONG_PASSWORD`). Deletion uses `POST /api/users/:id/delete`; the generic delete route is closed. | A second, deliberate step before an action that is hard to undo. |
+| Every role change emails the person and every owner. | A mistaken change is noticed immediately. |
+| "New user" cannot create an owner. Promote an existing account instead. | Making an owner always goes through the password check and the emails. |
+| Moving a course to another doctor asks for confirmation. | It changes who earns from future sales. |
+| Archived courses show an Unarchive button in the course list and explain it on the course page. | Unarchiving was hard to find. |
+| The dashboard has its own frame (dark sidebar, grey work area) instead of the public site header. Routes are split into `(site)` and `dashboard` under `[locale]`. | The dashboard should feel like its own workspace while keeping the brand. || Making someone an owner takes two steps: the owner's password, then a one-time link (30 minutes) emailed to that owner. It opens `/dashboard/confirm-owner`, which only shows the request; the change happens on Confirm (`POST /api/users/confirm-owner`). Pending requests live in the hidden `owner-promotions` collection, which stores only a hash of the token. | Giving full control of the platform needs proof of both the password and the owner's email. A button rather than an automatic change, because email scanners open links. |
+| The course form picks the category in two fields: main category, then an optional subcategory filtered to it. The saved value is still one `category`. | Clearer than one long grouped list. |
+
