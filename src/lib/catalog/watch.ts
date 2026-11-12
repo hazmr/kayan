@@ -38,7 +38,12 @@ interface WatchBase {
 
 export type WatchPage =
   | { kind: 'notFound' }
-  | ({ kind: 'ok'; embedUrl: string } & WatchBase)
+  | ({
+      kind: 'ok'
+      embedUrl: string
+      /** A paid, protected video (Bunny): shown with the viewer's watermark. */
+      protectedVideo: boolean
+    } & WatchBase)
   // No video information at all: only the outline, which is public anyway.
   | ({ kind: 'locked'; loggedIn: boolean } & WatchBase)
 
@@ -151,5 +156,10 @@ export async function getWatchPage(
   const playback = await getVideoProvider(lesson.videoProvider).getPlayback(lesson.videoId, {
     userId: user?.id,
   })
-  return { kind: 'ok', embedUrl: playback.embedUrl, ...base }
+  return {
+    kind: 'ok',
+    embedUrl: playback.embedUrl,
+    protectedVideo: lesson.videoProvider === 'bunny',
+    ...base,
+  }
 }

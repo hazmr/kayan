@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import { LessonCompleteButton } from '@/components/courses/LessonCompleteButton'
+import { ProtectedPlayer } from '@/components/courses/ProtectedPlayer'
 import { ProgressBar } from '@/components/courses/ProgressBar'
 import { WatchSidebar } from '@/components/courses/WatchSidebar'
 import { summarizeProgress } from '@/lib/progress/calculate'
@@ -55,7 +56,14 @@ export default async function LessonPage({ params }: PageProps) {
           ← {t('back')}: {course.title}
         </Link>
 
-        {page.kind === 'ok' ? (
+        {page.kind === 'ok' && page.protectedVideo ? (
+          <ProtectedPlayer
+            embedUrl={page.embedUrl}
+            title={t('videoTitle', { title: current.title })}
+            // The viewer's own details: a leaked screen recording points back to this account.
+            watermark={[user?.name, user?.phone || user?.email].filter(Boolean).join(' · ')}
+          />
+        ) : page.kind === 'ok' ? (
           <div className="aspect-video overflow-hidden rounded-xl border bg-black">
             <iframe
               src={page.embedUrl}

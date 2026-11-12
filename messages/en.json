@@ -56,7 +56,8 @@
       "description": "Enter your email and password.",
       "submit": "Log in",
       "noAccount": "No account yet?",
-      "forgot": "Forgot your password?"
+      "forgot": "Forgot your password?",
+      "oneDevice": "Student accounts can be signed in on one device at a time. Signing in here signs out your other devices."
     },
     "register": {
       "title": "Sign up",
@@ -294,7 +295,15 @@
       "noModules": "No modules yet. A module is a chapter that groups lessons.",
       "noLessons": "No lessons in this module yet.",
       "duration": "{minutes} min",
-      "deleteModuleBody": "The module and all of its lessons will be deleted."
+      "deleteModuleBody": "The module and all of its lessons will be deleted.",
+      "provider": "Video host",
+      "providerHelp": "Bunny Stream for paid and exclusive lessons (protected, cannot be downloaded); YouTube for free and public videos.",
+      "providers": {
+        "youtube": "YouTube",
+        "bunny": "Bunny Stream (protected)"
+      },
+      "bunnyHelp": "Paste the Bunny video ID or its link. The length is filled in from Bunny when you save.",
+      "bunnyInvalid": "That does not contain a Bunny video ID. Copy it from the video in Bunny."
     },
     "categories": {
       "title": "Categories",
@@ -621,7 +630,9 @@
     "markComplete": "Mark as complete",
     "completedUndo": "Completed. Tap to undo",
     "completed": "Completed",
-    "progressTitle": "Your progress in this course"
+    "progressTitle": "Your progress in this course",
+    "fullScreen": "Full screen",
+    "exitFullScreen": "Exit full screen"
   },
   "myCourses": {
     "title": "My courses",

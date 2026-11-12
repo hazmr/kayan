@@ -64,6 +64,7 @@ export function LoginForm({ next }: { next?: string }) {
       <Button type="submit" disabled={pending}>
         {t('login.submit')}
       </Button>
+      <p className="text-center text-xs text-muted-foreground">{t('login.oneDevice')}</p>
 
       <div className="flex flex-col gap-1 text-sm text-muted-foreground">
         <Link href="/forgot-password" className="text-primary underline-offset-4 hover:underline">

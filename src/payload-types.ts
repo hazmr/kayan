@@ -256,7 +256,7 @@ export interface Lesson {
    * Lower numbers come first.
    */
   position: number;
-  videoProvider: 'youtube';
+  videoProvider: 'youtube' | 'bunny';
   /**
    * Only the ID, not the full link. For youtube.com/watch?v=abc123 the ID is abc123.
    */

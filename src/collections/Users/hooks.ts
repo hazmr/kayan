@@ -1,11 +1,12 @@
 import type {
+  CollectionAfterLoginHook,
   CollectionBeforeChangeHook,
   CollectionBeforeDeleteHook,
   CollectionBeforeOperationHook,
   PayloadRequest,
 } from 'payload'
 
-import { DEFAULT_ROLE, isSuperadmin } from '@/access/roles'
+import { DEFAULT_ROLE, isSuperadmin, roleOf } from '@/access/roles'
 import { AppError } from '@/lib/errors/AppError'
 import { MIN_PASSWORD_LENGTH } from '@/lib/errors/codes'
 import type { User } from '@/payload-types'
@@ -153,4 +154,51 @@ export const refuseDeleteWhenInUse: CollectionBeforeDeleteHook = async ({ id, re
   if (courses.totalDocs + orders.totalDocs + enrollments.totalDocs > 0) {
     throw new AppError('USER_HAS_RECORDS')
   }
+}
+
+/** The session id inside a login token (the middle part of the JWT), or null. */
+function sessionIdOf(token: string | undefined): string | null {
+  const part = token?.split('.')[1]
+  if (!part) return null
+  try {
+    const claims: unknown = JSON.parse(Buffer.from(part, 'base64url').toString('utf8'))
+    const sid =
+      typeof claims === 'object' && claims !== null ? (claims as { sid?: unknown }).sid : null
+    return typeof sid === 'string' ? sid : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * One device at a time for students: logging in signs out every other device. Paid lessons
+ * are personal, and this stops one account being shared by a whole group. (Payload rejects a
+ * token whose session no longer exists, so the other devices are logged out on their next
+ * click.) Staff are not limited.
+ */
+export const oneDeviceForStudents: CollectionAfterLoginHook<User> = async ({
+  user,
+  token,
+  req,
+}) => {
+  if (roleOf(user) !== 'student') return
+  const keep = sessionIdOf(token)
+  if (!keep) return
+  const full = await req.payload.findByID({
+    collection: 'users',
+    id: user.id,
+    depth: 0,
+    overrideAccess: true,
+    showHiddenFields: true,
+    req,
+  })
+  const sessions = full.sessions ?? []
+  if (sessions.length <= 1) return
+  await req.payload.db.updateOne({
+    collection: 'users',
+    id: user.id,
+    data: { sessions: sessions.filter((session) => session.id === keep) },
+    req,
+    returning: false,
+  })
 }

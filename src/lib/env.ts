@@ -51,6 +51,15 @@ export const env = {
   // Where uploaded files are kept on disk (development and tests). Default: the project folder.
   // Production moves to object storage (Cloudflare R2), where this is not used.
   uploadsDir: optional('UPLOADS_DIR') ?? '.',
+  // Bunny Stream, for paid and exclusive videos. Optional: without it lessons use YouTube only.
+  //   BUNNY_LIBRARY_ID   the video library's id (Stream > your library > API)
+  //   BUNNY_TOKEN_KEY    the library's "Token authentication key" (Security page), signs links
+  //   BUNNY_API_KEY      the library's API key, used only to read a video's length (optional)
+  bunny: {
+    libraryId: optional('BUNNY_LIBRARY_ID'),
+    tokenKey: optional('BUNNY_TOKEN_KEY'),
+    apiKey: optional('BUNNY_API_KEY'),
+  },
   smtp: {
     host: required('SMTP_HOST'),
     port: port('SMTP_PORT', 587),

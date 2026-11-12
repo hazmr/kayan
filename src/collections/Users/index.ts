@@ -20,6 +20,7 @@ import { changePasswordEndpoint, changeRoleEndpoint, deleteUserEndpoint } from '
 import {
   enforcePasswordLength,
   guardProtectedFields,
+  oneDeviceForStudents,
   protectLastSuperadminOnChange,
   protectLastSuperadminOnDelete,
   refuseDeleteWhenInUse,
@@ -66,6 +67,7 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeOperation: [enforcePasswordLength],
+    afterLogin: [oneDeviceForStudents],
     beforeChange: [guardProtectedFields, protectLastSuperadminOnChange],
     beforeDelete: [protectLastSuperadminOnDelete, refuseDeleteWhenInUse],
   },

@@ -17,10 +17,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { sendJson, type ApiResult } from '@/lib/api/postJson'
 import type { LessonEdit, Localized, ModuleEdit } from '@/lib/dashboard/types'
+import { parseBunnyId } from '@/lib/video/parseBunnyId'
 import { parseYouTubeId } from '@/lib/video/parseYouTubeId'
 
 import { ConfirmDelete, LocalizedField, useApiAction } from './shared'
-import { localizedPayload, pick } from '@/lib/dashboard/localized'
+import { localizedPayload, selectClass, pick } from '@/lib/dashboard/localized'
 
 const EMPTY: Localized = { ar: '', en: '' }
 
@@ -60,9 +61,12 @@ function moved<T>(list: T[], index: number, direction: -1 | 1): T[] {
 export function CurriculumEditor({
   courseId,
   modules,
+  providers,
 }: {
   courseId: string
   modules: ModuleEdit[]
+  /** The video hosts that are set up (decided on the server from .env). */
+  providers: LessonEdit['videoProvider'][]
 }) {
   const t = useTranslations('dashboard')
   const locale = useLocale()
@@ -220,6 +224,7 @@ export function CurriculumEditor({
       )}
       {editing?.kind === 'lesson' && (
         <LessonDialog
+          providers={providers}
           moduleId={editing.moduleId}
           lesson={editing.lesson}
           nextPosition={
@@ -293,12 +298,17 @@ function ModuleDialog({
   )
 }
 
+type Provider = LessonEdit['videoProvider']
+
 function LessonDialog({
+  providers,
   moduleId,
   lesson,
   nextPosition,
   onClose,
 }: {
+  /** The video hosts that are set up. Bunny appears once its keys are in .env. */
+  providers: Provider[]
   moduleId: string
   lesson?: LessonEdit
   nextPosition: number
@@ -307,6 +317,9 @@ function LessonDialog({
   const t = useTranslations('dashboard')
   const { run, pending, errorCode } = useApiAction()
   const [title, setTitle] = useState<Localized>(lesson?.title ?? EMPTY)
+  const [provider, setProvider] = useState<Provider>(
+    lesson?.videoProvider ?? (providers.includes('bunny') ? 'bunny' : 'youtube'),
+  )
   const [video, setVideo] = useState(lesson?.videoId ?? '')
   const [minutes, setMinutes] = useState(String(Math.floor((lesson?.durationSeconds ?? 0) / 60)))
   const [seconds, setSeconds] = useState(String((lesson?.durationSeconds ?? 0) % 60))
@@ -316,13 +329,13 @@ function LessonDialog({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     // A lesson stores the video id, never a link, so a pasted link is reduced to its id here.
-    const videoId = parseYouTubeId(video)
+    const videoId = provider === 'bunny' ? parseBunnyId(video) : parseYouTubeId(video)
     setVideoInvalid(videoId === null)
     if (videoId === null) return
 
     const body = {
       title: localizedPayload(title),
-      videoProvider: 'youtube',
+      videoProvider: provider,
       videoId,
       durationSeconds:
         Math.max(0, Math.trunc(Number(minutes) || 0)) * 60 +
@@ -358,6 +371,28 @@ function LessonDialog({
             onChange={setTitle}
           />
 
+          {providers.length > 1 && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="lesson-provider">{t('curriculum.provider')}</Label>
+              <select
+                id="lesson-provider"
+                className={selectClass}
+                value={provider}
+                onChange={(event) => {
+                  setProvider(event.target.value as Provider)
+                  setVideoInvalid(false)
+                }}
+              >
+                {providers.map((option) => (
+                  <option key={option} value={option}>
+                    {t(`curriculum.providers.${option}`)}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">{t('curriculum.providerHelp')}</p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="lesson-video">{t('curriculum.video')}</Label>
             <Input
@@ -375,7 +410,13 @@ function LessonDialog({
                 videoInvalid ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'
               }
             >
-              {videoInvalid ? t('curriculum.videoInvalid') : t('curriculum.videoHelp')}
+              {videoInvalid
+                ? provider === 'bunny'
+                  ? t('curriculum.bunnyInvalid')
+                  : t('curriculum.videoInvalid')
+                : provider === 'bunny'
+                  ? t('curriculum.bunnyHelp')
+                  : t('curriculum.videoHelp')}
             </p>
           </div>
 

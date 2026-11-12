@@ -20,6 +20,7 @@ export interface LessonEdit {
   id: string
   title: Localized
   position: number
+  videoProvider: 'youtube' | 'bunny'
   videoId: string
   durationSeconds: number
   isFreePreview: boolean

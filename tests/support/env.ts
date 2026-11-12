@@ -49,6 +49,9 @@ export function testEnv(
     INSTRUCTOR_NAME_EN: 'Dr. Test',
     INSTRUCTOR_TITLE_EN: 'Test title',
     INSTRUCTOR_PHOTO: '/academy/hassan-helal-portrait.webp',
+    // A made-up Bunny library, so Bunny lessons can be tested. No API key: lengths are not fetched.
+    BUNNY_LIBRARY_ID: '12345',
+    BUNNY_TOKEN_KEY: 'test-bunny-token-key',
     UPLOADS_DIR: path.join(os.tmpdir(), `kayan-${databaseName}-uploads`),
     NODE_OPTIONS: '--no-deprecation',
   }

@@ -155,6 +155,7 @@ export async function getCourseForEdit(user: User, id: string): Promise<CourseEd
         id: lesson.id,
         title: localized(lesson.title),
         position: lesson.position,
+        videoProvider: lesson.videoProvider ?? 'youtube',
         videoId: lesson.videoId ?? '',
         durationSeconds: lesson.durationSeconds,
         isFreePreview: lesson.isFreePreview === true,

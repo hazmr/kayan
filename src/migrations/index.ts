@@ -10,6 +10,7 @@ import * as migration_20261112_024249_lesson_progress from './20261112_024249_le
 import * as migration_20261112_145459_one_academy_roles from './20261112_145459_one_academy_roles';
 import * as migration_20261112_151246_academy_money from './20261112_151246_academy_money';
 import * as migration_20261112_160000_admin_is_id_zero from './20261112_160000_admin_is_id_zero';
+import * as migration_20261112_165706_bunny_video_provider from './20261112_165706_bunny_video_provider';
 
 export const migrations = [
   {
@@ -70,6 +71,11 @@ export const migrations = [
   {
     up: migration_20261112_160000_admin_is_id_zero.up,
     down: migration_20261112_160000_admin_is_id_zero.down,
-    name: '20261112_160000_admin_is_id_zero'
+    name: '20261112_160000_admin_is_id_zero',
+  },
+  {
+    up: migration_20261112_165706_bunny_video_provider.up,
+    down: migration_20261112_165706_bunny_video_provider.down,
+    name: '20261112_165706_bunny_video_provider'
   },
 ];

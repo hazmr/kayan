@@ -8,6 +8,7 @@ import { pick } from '@/lib/dashboard/localized'
 import { Link } from '@/i18n/navigation'
 import { getCourseForEdit, listCategoryOptions, listDoctors } from '@/lib/dashboard/queries'
 import { requireDashboardUser } from '@/lib/dashboard/requireUser'
+import { availableVideoProviders } from '@/lib/video'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -64,7 +65,11 @@ export default async function EditCoursePage({ params }: PageProps) {
         />
       </div>
 
-      <CurriculumEditor courseId={course.id} modules={course.modules} />
+      <CurriculumEditor
+        courseId={course.id}
+        modules={course.modules}
+        providers={availableVideoProviders()}
+      />
     </section>
   )
 }

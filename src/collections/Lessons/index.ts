@@ -1,4 +1,5 @@
 import type {
+  CollectionBeforeChangeHook,
   CollectionBeforeDeleteHook,
   CollectionBeforeValidateHook,
   CollectionConfig,
@@ -9,6 +10,7 @@ import { createCourseContent, editCourseContent, readCourseContent } from '@/acc
 import { isStaff } from '@/access/roles'
 import { assertCanEditCourse } from '@/lib/courses/assertCanEditCourse'
 import { AppError } from '@/lib/errors/AppError'
+import { BUNNY_VIDEO_ID, fetchBunnyLength } from '@/lib/video/bunny'
 import type { Lesson } from '@/payload-types'
 
 import { collectionLabels, label } from '../shared/labels'
@@ -47,6 +49,19 @@ const syncCourseFromModule: CollectionBeforeValidateHook<Lesson> = async ({
  */
 const readVideoId: FieldAccess<Lesson> = ({ req }) => isStaff(req.user)
 
+/**
+ * A Bunny lesson's length comes from Bunny itself when the API key is set, so nobody has to
+ * type it (and it cannot drift). If Bunny cannot answer, the length typed in the form stays.
+ */
+const fillBunnyLength: CollectionBeforeChangeHook<Lesson> = async ({ data, originalDoc }) => {
+  const provider = data.videoProvider ?? originalDoc?.videoProvider
+  const videoId = data.videoId ?? originalDoc?.videoId
+  if (provider !== 'bunny' || !videoId) return data
+  const length = await fetchBunnyLength(videoId)
+  if (length !== null) data.durationSeconds = length
+  return data
+}
+
 /** Students' "completed" marks point at the lesson, so they go first when a lesson is deleted. */
 const removeLessonProgress: CollectionBeforeDeleteHook = async ({ id, req }) => {
   await req.payload.delete({
@@ -73,6 +88,7 @@ export const Lessons: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [requireArabic(['title']), syncCourseFromModule],
+    beforeChange: [fillBunnyLength],
     beforeDelete: [removeLessonProgress],
   },
   fields: [
@@ -126,8 +142,11 @@ export const Lessons: CollectionConfig = {
           label: label('Video host', 'مكان الفيديو'),
           required: true,
           defaultValue: 'youtube',
-          // Bunny appears here when its adapter is added.
-          options: [{ label: 'YouTube', value: 'youtube' }],
+          // YouTube for free and public videos; Bunny Stream (signed links, DRM) for paid ones.
+          options: [
+            { label: 'YouTube', value: 'youtube' },
+            { label: 'Bunny Stream', value: 'bunny' },
+          ],
           access: { read: readVideoId },
         },
         {
@@ -143,9 +162,17 @@ export const Lessons: CollectionConfig = {
               'المعرّف فقط وليس الرابط كاملاً. في youtube.com/watch?v=abc123 المعرّف هو abc123.',
             ),
           },
-          validate: (value: unknown) =>
-            (typeof value === 'string' && /^[A-Za-z0-9_-]+$/.test(value)) ||
-            'Enter only the video ID: letters, numbers, dashes, and underscores.',
+          // A YouTube id is letters, numbers, dashes and underscores; a Bunny id is a GUID.
+          validate: (value: unknown, { siblingData }: { siblingData: Partial<Lesson> }) => {
+            if (typeof value !== 'string') return 'Enter the video ID.'
+            if (siblingData?.videoProvider === 'bunny') {
+              return BUNNY_VIDEO_ID.test(value) || 'Enter the Bunny video ID (a GUID).'
+            }
+            return (
+              /^[A-Za-z0-9_-]+$/.test(value) ||
+              'Enter only the video ID: letters, numbers, dashes, and underscores.'
+            )
+          },
         },
       ],
     },
