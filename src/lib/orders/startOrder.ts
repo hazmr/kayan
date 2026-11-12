@@ -2,6 +2,7 @@ import type { PayloadRequest, RequiredDataFromCollectionSlug } from 'payload'
 
 import { lockRow } from '@/lib/db/lockRow'
 import { withTransaction } from '@/lib/db/withTransaction'
+import { hasRole } from '@/access/roles'
 import { requireUser } from '@/lib/auth/requireActor'
 import { AppError } from '@/lib/errors/AppError'
 import { availableMethods, getPaymentSettings } from '@/lib/payments/settings'
@@ -29,6 +30,8 @@ export async function startOrder({
   req,
 }: StartOrderArgs): Promise<{ order: Order; resumed: boolean }> {
   const user = requireUser(req)
+  // Doctors and staff run the platform; they never buy from it (not even their own course).
+  if (!hasRole(user, 'student')) throw new AppError('ONLY_STUDENTS_CAN_BUY')
   const course = await loadCourse(courseId, req)
   if (course.status !== 'published') throw new AppError('COURSE_NOT_PURCHASABLE')
 

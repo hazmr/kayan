@@ -14,6 +14,7 @@ export default async function OrdersPage() {
     getFormatter(),
   ])
   if (!user) return redirect({ href: { pathname: '/login', query: { next: '/orders' } }, locale })
+  if (user.role !== 'student') return redirect({ href: '/dashboard', locale })
   const orders = await listMyOrders(user, locale)
 
   return (

@@ -64,6 +64,57 @@ export async function listCourses(user: User, status?: CourseStatus): Promise<Co
   }))
 }
 
+export const DASHBOARD_COURSES_PAGE_SIZE = 20
+
+/**
+ * The dashboard course list with search and pages. Same rules as listCourses (a doctor sees
+ * only their own, staff see everyone's), and it still runs WITH access control.
+ * `search` matches the title in either language and the doctor's name; clean it first.
+ */
+export async function searchCourses(
+  user: User,
+  options: { status?: CourseStatus; search?: string; page: number },
+): Promise<{ rows: CourseRow[]; page: number; totalPages: number; totalDocs: number }> {
+  const payload = await getPayload({ config })
+  const filters: Where[] = []
+  if (!isStaff(user)) filters.push({ owner: { equals: user.id } })
+  if (options.status) filters.push({ status: { equals: options.status } })
+  if (options.search) {
+    filters.push({
+      or: [
+        { 'title.ar': { contains: options.search } },
+        { 'title.en': { contains: options.search } },
+        { 'owner.name': { contains: options.search } },
+      ],
+    })
+  }
+
+  const result = await payload.find({
+    collection: 'courses',
+    where: filters.length > 0 ? { and: filters } : {},
+    depth: 1,
+    limit: DASHBOARD_COURSES_PAGE_SIZE,
+    page: options.page,
+    locale: 'all',
+    overrideAccess: false,
+    sort: '-updatedAt',
+    user,
+  })
+  return {
+    rows: result.docs.map((course) => ({
+      id: course.id,
+      title: localized(course.title),
+      status: course.status,
+      ownerName: typeof course.owner === 'object' ? course.owner.name : '',
+      priceEgp: piastersToEgp(course.price),
+      updatedAt: course.updatedAt,
+    })),
+    page: result.page ?? 1,
+    totalPages: result.totalPages,
+    totalDocs: result.totalDocs,
+  }
+}
+
 export async function countCoursesInReview(user: User): Promise<number> {
   const payload = await getPayload({ config })
   const { totalDocs } = await payload.count({
@@ -202,6 +253,7 @@ export async function listUsers(user: User, search?: string): Promise<UserRow[]>
     email: row.email,
     role: roleOf(row) ?? 'student',
     verified: row._verified === true,
+    master: row.isMasterOwner === true,
   }))
 }
 

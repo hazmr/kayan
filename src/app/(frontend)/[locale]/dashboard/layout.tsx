@@ -18,14 +18,16 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const user = await requireDashboardUser()
   const t = await getTranslations('dashboard.nav')
   const staff = isStaff(user)
+  const role = roleOf(user)
 
   // Each role sees only the sections it can use.
   const coursesItem: NavItem = { href: '/dashboard/courses', label: t('courses'), icon: 'courses' }
-  const items: NavItem[] = [coursesItem]
-  // Doctors see their own sales here; managers and the owner see every order.
+  const overviewItem: NavItem = { href: '/dashboard', label: t('overview'), icon: 'overview' }
+  // Money pages: a doctor sees their own earnings, the owner sees every doctor's.
+  // Managers have no money pages.
   const earningsItem: NavItem = {
     href: '/dashboard/earnings',
-    label: t('earnings'),
+    label: isSuperadmin(user) ? t('doctorsEarnings') : t('earnings'),
     icon: 'earnings',
   }
   const ordersItem: NavItem = {
@@ -33,7 +35,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     label: staff ? t('orders') : t('sales'),
     icon: 'orders',
   }
+
+  const items: NavItem[] = [overviewItem]
   if (staff) {
+    // Staff work from the queues, so those come first: receipts, refunds, courses to review.
     const [inReview, receipts, refunds] = await Promise.all([
       countCoursesInReview(user),
       countAwaitingReview(user),
@@ -52,12 +57,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       icon: 'refunds',
       badge: refunds > 0 ? String(refunds) : undefined,
     })
-    items.push(ordersItem)
-    items.push(earningsItem)
+    items.push(coursesItem, ordersItem)
+    if (isSuperadmin(user)) items.push(earningsItem)
     items.push({ href: '/dashboard/categories', label: t('categories'), icon: 'categories' })
     items.push({ href: '/dashboard/users', label: t('users'), icon: 'users' })
+  } else {
+    items.push(coursesItem, ordersItem, earningsItem)
   }
-  if (!staff) items.push(ordersItem, earningsItem)
   if (isSuperadmin(user)) {
     items.push({ href: '/dashboard/settings', label: t('settings'), icon: 'settings' })
   }
@@ -70,7 +76,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <Link href="/dashboard" className="flex items-baseline gap-2 px-3 pt-1">
             <span className="text-xl font-bold text-sidebar-accent-foreground">Vetudy</span>
             <span className="rounded-md bg-sidebar-primary px-1.5 py-0.5 text-xs font-semibold text-sidebar-primary-foreground">
-              {staff ? t('admin') : t('studio')}
+              {role === 'superadmin' ? t('owner') : role === 'manager' ? t('manager') : t('studio')}
             </span>
           </Link>
 
@@ -91,7 +97,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             {t('viewSite')}
           </Link>
           <Suspense>
-            <AccountMenu name={user.name} role={roleOf(user) ?? 'admin'} showDashboard={false} />
+            <AccountMenu name={user.name} role={roleOf(user) ?? 'admin'} />
           </Suspense>
         </div>
 

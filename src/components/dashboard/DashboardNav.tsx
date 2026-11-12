@@ -4,6 +4,7 @@ import {
   CreditCard,
   Receipt,
   FolderTree,
+  LayoutDashboard,
   LayoutList,
   Settings,
   Undo2,
@@ -15,6 +16,7 @@ import {
 import { Link, usePathname } from '@/i18n/navigation'
 
 const ICONS = {
+  overview: LayoutDashboard,
   courses: LayoutList,
   orders: Receipt,
   earnings: Wallet,
@@ -38,7 +40,10 @@ export function DashboardNav({ items, label }: { items: NavItem[]; label: string
   return (
     <nav aria-label={label} className="flex gap-1 overflow-x-auto md:flex-col">
       {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+        // Every dashboard page lives under /dashboard, so Overview matches only its own address.
+        const active =
+          pathname === item.href ||
+          (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))
         const Icon = ICONS[item.icon]
         return (
           <Link

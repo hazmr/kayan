@@ -6,44 +6,7 @@ import { pick } from '@/lib/dashboard/localized'
 import type { DoctorBalanceRow, OwnerEarnings } from '@/lib/earnings/getOwnerEarnings'
 
 import { DeletePayoutButton, RecordPayoutButton } from './PayoutActions'
-
-async function getMoneyFormatter() {
-  const format = await getFormatter()
-  return (piasters: number) =>
-    format.number(piasters / 100, {
-      style: 'currency',
-      currency: 'EGP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    })
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-  hint,
-}: {
-  label: string
-  value: string
-  tone?: 'good' | 'bad'
-  hint?: string
-}) {
-  return (
-    <div className="flex flex-col gap-1 rounded-xl border bg-card p-4">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span
-        className={
-          'text-2xl font-bold ' +
-          (tone === 'bad' ? 'text-destructive' : tone === 'good' ? 'text-primary' : '')
-        }
-      >
-        {value}
-      </span>
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-    </div>
-  )
-}
+import { getMoneyFormatter, Stat } from './Stat'
 
 /**
  * One doctor's earnings: the totals, sales by course, and every payout. A doctor sees their own;

@@ -15,6 +15,8 @@ export default async function MyCoursesPage() {
   if (!user) {
     return redirect({ href: { pathname: '/login', query: { next: '/my-courses' } }, locale })
   }
+  // Learning is for student accounts; everyone else works from the dashboard.
+  if (user.role !== 'student') return redirect({ href: '/dashboard', locale })
   const courses = await listMyCourses(user, locale)
 
   return (

@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  GraduationCap,
-  Languages,
-  LayoutDashboard,
-  LogOut,
-  ReceiptText,
-  UserRound,
-} from 'lucide-react'
+import { Languages, LogOut, ReceiptText, UserRound } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 
@@ -31,17 +24,15 @@ import { postJson } from '@/lib/api/postJson'
 interface AccountMenuProps {
   name: string
   role: Role
-  /** Shows the "Dashboard" entry. Off inside the dashboard itself. */
-  showDashboard: boolean
   /** Light text on the dark dashboard bar, dark text on the white site header. */
   tone?: 'light' | 'dark'
 }
 
 /**
- * Everything about "me" in one place: who is logged in, the dashboard, account settings,
+ * Everything about "me" in one place: who is logged in, orders, account settings,
  * the language, and logging out. Used by both the site header and the dashboard top bar.
  */
-export function AccountMenu({ name, role, showDashboard, tone = 'dark' }: AccountMenuProps) {
+export function AccountMenu({ name, role, tone = 'dark' }: AccountMenuProps) {
   const t = useTranslations('menu')
   const locale = useLocale()
   const pathname = usePathname()
@@ -71,17 +62,17 @@ export function AccountMenu({ name, role, showDashboard, tone = 'dark' }: Accoun
       <DropdownMenuTrigger
         aria-label={t('accountMenu')}
         className={cn(
-          'flex items-center gap-2 rounded-full py-1 ps-1 pe-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+          'flex items-center gap-2 rounded-full py-1 ps-3 pe-1 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
           tone === 'dark' ? 'hover:bg-muted' : 'hover:bg-black/5',
         )}
       >
+        <span className="hidden max-w-40 truncate font-medium sm:inline">{name}</span>
         <span
           aria-hidden
           className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
         >
           {name.trim().charAt(0).toUpperCase()}
         </span>
-        <span className="hidden max-w-40 truncate font-medium sm:inline">{name}</span>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-60">
@@ -92,26 +83,16 @@ export function AccountMenu({ name, role, showDashboard, tone = 'dark' }: Accoun
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          {showDashboard && (
-            <DropdownMenuItem asChild className="sm:hidden">
-              <Link href="/dashboard">
-                <LayoutDashboard aria-hidden />
-                {t('dashboard')}
+          {/* My courses and the dashboard are in the header's middle, so they are not repeated here.
+              Orders are for student accounts: doctors and staff have none. */}
+          {role === 'student' && (
+            <DropdownMenuItem asChild>
+              <Link href="/orders">
+                <ReceiptText aria-hidden />
+                {t('orders')}
               </Link>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem asChild>
-            <Link href="/my-courses">
-              <GraduationCap aria-hidden />
-              {t('myCourses')}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/orders">
-              <ReceiptText aria-hidden />
-              {t('orders')}
-            </Link>
-          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/account">
               <UserRound aria-hidden />

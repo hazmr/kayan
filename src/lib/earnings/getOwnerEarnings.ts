@@ -1,7 +1,7 @@
 import config from '@payload-config'
 import { getPayload } from 'payload'
 
-import { isStaff } from '@/access/roles'
+import { isSuperadmin } from '@/access/roles'
 import { relationId } from '@/collections/shared/relationId'
 import type { Localized } from '@/lib/dashboard/types'
 import { AppError } from '@/lib/errors/AppError'
@@ -39,12 +39,13 @@ export interface OwnerEarnings {
 }
 
 /**
- * One doctor's earnings page. A doctor may load only their own; staff may load anyone's.
+ * One doctor's earnings page. A doctor may load only their own; the owner may load anyone's.
+ * Managers may not: money is the owner's and the doctor's business.
  * (Orders are not readable by doctors through the API, so this reads them on their behalf
  * after checking who is asking.)
  */
 export async function getOwnerEarnings(viewer: User, doctorId: string): Promise<OwnerEarnings> {
-  if (!isStaff(viewer) && viewer.id !== doctorId) throw new AppError('NOT_FOUND')
+  if (!isSuperadmin(viewer) && viewer.id !== doctorId) throw new AppError('NOT_FOUND')
 
   const payload = await getPayload({ config })
   const doctor = await payload
@@ -130,9 +131,9 @@ export interface DoctorBalanceRow {
   balance: number
 }
 
-/** The owner's and managers' overview: every doctor and what they are owed. Staff only. */
+/** The owner's overview: every doctor and what they are owed. Owner only. */
 export async function listDoctorBalances(viewer: User): Promise<DoctorBalanceRow[]> {
-  if (!isStaff(viewer)) throw new AppError('FORBIDDEN')
+  if (!isSuperadmin(viewer)) throw new AppError('FORBIDDEN')
   const payload = await getPayload({ config })
 
   const [doctors, orders, payouts] = await Promise.all([

@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { closed } from '@/access/orders'
-import { readOwnPayoutOrStaff } from '@/access/payouts'
+import { readOwnPayoutOrSuperadmin } from '@/access/payouts'
 
 import { collectionLabels, label } from '../shared/labels'
 import { payoutEndpoints } from './endpoints'
@@ -15,7 +15,7 @@ export const Payouts: CollectionConfig = {
   slug: 'payouts',
   labels: collectionLabels(['Payout', 'دفعة'], ['Payouts', 'الدفعات']),
   access: {
-    read: readOwnPayoutOrStaff,
+    read: readOwnPayoutOrSuperadmin,
     create: closed,
     update: closed,
     delete: closed,

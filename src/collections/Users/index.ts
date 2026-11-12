@@ -27,6 +27,8 @@ import {
   guardProtectedFields,
   protectLastSuperadminOnChange,
   protectLastSuperadminOnDelete,
+  protectMasterOwnerOnChange,
+  protectMasterOwnerOnDelete,
   refuseDeleteWhenInUse,
   removeOwnerPromotions,
 } from './hooks'
@@ -72,8 +74,13 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeOperation: [enforcePasswordLength],
-    beforeChange: [guardProtectedFields, protectLastSuperadminOnChange],
-    beforeDelete: [protectLastSuperadminOnDelete, refuseDeleteWhenInUse, removeOwnerPromotions],
+    beforeChange: [guardProtectedFields, protectMasterOwnerOnChange, protectLastSuperadminOnChange],
+    beforeDelete: [
+      protectMasterOwnerOnDelete,
+      protectLastSuperadminOnDelete,
+      refuseDeleteWhenInUse,
+      removeOwnerPromotions,
+    ],
   },
   endpoints: [changePasswordEndpoint, changeRoleEndpoint, deleteUserEndpoint, confirmOwnerEndpoint],
   fields: [
@@ -88,6 +95,16 @@ export const Users: CollectionConfig = {
       name: 'phone',
       type: 'text',
       maxLength: 30,
+    },
+    {
+      // The master owner: one account that nobody can demote, edit, or delete from the app, not
+      // even other owners. Set only by the `pnpm master:set` command on the server (see
+      // src/scripts/set-master-owner.ts); the database allows at most one.
+      name: 'isMasterOwner',
+      type: 'checkbox',
+      defaultValue: false,
+      access: { create: () => false, update: () => false },
+      admin: { readOnly: true },
     },
     {
       name: 'role',

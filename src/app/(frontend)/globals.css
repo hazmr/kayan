@@ -131,3 +131,59 @@
     @apply font-sans;
   }
 }
+
+/* ---- Motion (used by the home page). Everything here is switched off for people who ask their
+   device for reduced motion. ---- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.6rem);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(1.5rem, -1rem) scale(1.08);
+  }
+}
+
+@theme inline {
+  --animate-rise: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-drift: drift 14s ease-in-out infinite;
+}
+
+/* Scroll reveal: <Reveal> marks a block "hidden" only if it starts below the screen, then "shown"
+   when it scrolls into view. A block that is already visible is never hidden, so nothing flashes. */
+[data-reveal] {
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal='hidden'] {
+  opacity: 0;
+  transform: translateY(1.5rem);
+}
+[data-reveal='shown'] {
+  opacity: 1;
+  transform: none;
+}

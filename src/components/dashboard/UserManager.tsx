@@ -93,6 +93,11 @@ export function UserManager({ users, currentUserId, canManage, search }: UserMan
                           {t('users.you')}
                         </Badge>
                       )}
+                      {user.master && (
+                        <Badge className="ms-2" title={t('users.masterLocked')}>
+                          {t('users.master')}
+                        </Badge>
+                      )}
                     </td>
                     <td className="px-4 py-2" dir="ltr">
                       {user.email}
@@ -103,7 +108,7 @@ export function UserManager({ users, currentUserId, canManage, search }: UserMan
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      {canManage && !isSelf ? (
+                      {canManage && !isSelf && !user.master ? (
                         <select
                           className={selectClass}
                           // Always shows the saved role. Choosing another opens the confirmation.
@@ -120,13 +125,21 @@ export function UserManager({ users, currentUserId, canManage, search }: UserMan
                           ))}
                         </select>
                       ) : (
-                        <span title={isSelf && canManage ? t('users.selfLocked') : undefined}>
+                        <span
+                          title={
+                            user.master
+                              ? t('users.masterLocked')
+                              : isSelf && canManage
+                                ? t('users.selfLocked')
+                                : undefined
+                          }
+                        >
                           {t(`roles.${user.role}`)}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-end">
-                      {canManage && !isSelf && (
+                      {canManage && !isSelf && !user.master && (
                         <Button
                           type="button"
                           variant="ghost"

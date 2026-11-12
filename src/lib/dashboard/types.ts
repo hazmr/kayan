@@ -66,6 +66,8 @@ export interface UserRow {
   email: string
   role: Role
   verified: boolean
+  /** The master owner: nobody can change or remove this account from the app. */
+  master: boolean
 }
 
 export interface PersonOption {

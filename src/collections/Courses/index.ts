@@ -26,6 +26,10 @@ const staffField: FieldAccess = ({ req: { user } }) => isStaff(user)
 const staffOrOwnerField: FieldAccess<Course> = ({ req: { user }, doc }) =>
   isStaff(user) || (Boolean(user) && relationId(doc?.owner) === user?.id)
 
+/** The share percent is a deal between the owner and the doctor: managers do not see it. */
+const superadminOrOwnerField: FieldAccess<Course> = ({ req: { user }, doc }) =>
+  isSuperadmin(user) || (Boolean(user) && relationId(doc?.owner) === user?.id)
+
 /** A doctor sets the price only while the course is a draft. Staff can change it any time. */
 const priceUpdate: FieldAccess<Course> = ({ req: { user }, doc }) =>
   isStaff(user) || doc?.status === 'draft'
@@ -155,7 +159,7 @@ export const Courses: CollectionConfig = {
       label: label('Doctor share (%)', 'نسبة الطبيب (%)'),
       min: 0,
       max: 100,
-      access: { read: staffOrOwnerField, create: superadminField, update: superadminField },
+      access: { read: superadminOrOwnerField, create: superadminField, update: superadminField },
       admin: { position: 'sidebar', step: 1 },
       validate: (value: unknown) =>
         value === undefined ||

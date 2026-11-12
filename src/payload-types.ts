@@ -77,6 +77,7 @@ export interface Config {
     orders: Order;
     receipts: Receipt;
     enrollments: Enrollment;
+    'lesson-progress': LessonProgress;
     payouts: Payout;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -102,6 +103,7 @@ export interface Config {
     orders: OrdersSelect<false> | OrdersSelect<true>;
     receipts: ReceiptsSelect<false> | ReceiptsSelect<true>;
     enrollments: EnrollmentsSelect<false> | EnrollmentsSelect<true>;
+    'lesson-progress': LessonProgressSelect<false> | LessonProgressSelect<true>;
     payouts: PayoutsSelect<false> | PayoutsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -279,6 +281,7 @@ export interface User {
   id: string;
   name: string;
   phone?: string | null;
+  isMasterOwner?: boolean | null;
   role: 'superadmin' | 'manager' | 'admin' | 'student';
   updatedAt: string;
   createdAt: string;
@@ -383,6 +386,19 @@ export interface Enrollment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lesson-progress".
+ */
+export interface LessonProgress {
+  id: string;
+  user: string | User;
+  course: string | Course;
+  lesson: string | Lesson;
+  completedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payouts".
  */
 export interface Payout {
@@ -458,6 +474,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'enrollments';
         value: string | Enrollment;
+      } | null)
+    | ({
+        relationTo: 'lesson-progress';
+        value: string | LessonProgress;
       } | null)
     | ({
         relationTo: 'payouts';
@@ -602,6 +622,7 @@ export interface MediaSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   phone?: T;
+  isMasterOwner?: T;
   role?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -695,6 +716,18 @@ export interface EnrollmentsSelect<T extends boolean = true> {
   course?: T;
   order?: T;
   status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lesson-progress_select".
+ */
+export interface LessonProgressSelect<T extends boolean = true> {
+  user?: T;
+  course?: T;
+  lesson?: T;
+  completedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

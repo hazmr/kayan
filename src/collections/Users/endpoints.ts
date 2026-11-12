@@ -46,6 +46,9 @@ async function authorizeOwnerAction(
     .findByID({ collection: 'users', id: targetId, depth: 0, overrideAccess: true, req })
     .catch(() => null)
   if (!target) throw new AppError('NOT_FOUND')
+  // The master owner cannot be changed or removed by anyone. The hooks refuse it too; this
+  // gives a clear answer before anything is attempted.
+  if (target.isMasterOwner === true) throw new AppError('MASTER_OWNER_PROTECTED')
   return { owner, target }
 }
 

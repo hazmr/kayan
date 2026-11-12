@@ -10,14 +10,35 @@
     "adminPanel": "Dashboard",
     "switchLanguage": "Change language",
     "courses": "Courses",
-    "account": "My account"
+    "account": "My account",
+    "myCourses": "My courses",
+    "menu": "Main menu"
   },
   "home": {
     "title": "Learn veterinary medicine from leading doctors",
     "subtitle": "Video courses taught by specialist veterinarians in Egypt, to watch any time and anywhere.",
-    "welcome": "Welcome, {name}",
     "getStarted": "Create your account",
-    "haveAccount": "Already have an account?"
+    "stepsTitle": "From choosing a course to watching it",
+    "steps": {
+      "choose": {
+        "title": "Choose a course",
+        "body": "Browse the catalog, read the outline, and watch the free preview lessons before you decide."
+      },
+      "pay": {
+        "title": "Pay and send the receipt",
+        "body": "Send the price by InstaPay or Vodafone Cash, then upload a screenshot of the transfer."
+      },
+      "learn": {
+        "title": "Start learning",
+        "body": "Our team confirms your payment and emails you. The whole course opens for you right away."
+      }
+    },
+    "welcomeBack": "Welcome back, {name}",
+    "studentSubtitle": "Pick up where you stopped.",
+    "studentEmpty": "You do not have a course yet. Browse the catalog and find your first one.",
+    "heroAlt": "Two veterinarians examining a dog on a clinic table",
+    "continueTitle": "Continue learning",
+    "allMyCourses": "All my courses ({count})"
   },
   "auth": {
     "fields": {
@@ -89,6 +110,8 @@
     "WRONG_PASSWORD": "The password is incorrect.",
     "SELF_CHANGE_NOT_ALLOWED": "You cannot change your own role or delete your own account. Ask another owner to do it.",
     "ALREADY_ENROLLED": "You already own this course.",
+    "MASTER_OWNER_PROTECTED": "This is the master owner account. Nobody can change or remove it from the dashboard.",
+    "ONLY_STUDENTS_CAN_BUY": "Only student accounts can buy or enroll in courses. Doctor and staff accounts are for running the platform.",
     "COURSE_NOT_PURCHASABLE": "This course is not available for purchase.",
     "COURSE_HAS_ENROLLMENTS": "This course has orders or students, so it cannot be deleted. Archive it instead.",
     "USER_HAS_RECORDS": "This person has courses, orders, or enrollments, so the account cannot be deleted.",
@@ -117,7 +140,25 @@
     "purchaseSoon": "Purchasing will be available soon.",
     "instructor": "Instructor",
     "newest": "Newest courses",
-    "viewAll": "View all courses"
+    "viewAll": "View all courses",
+    "searchLabel": "Search courses",
+    "searchPlaceholder": "Search by course or doctor",
+    "searchButton": "Search",
+    "priceLabel": "Price",
+    "price": {
+      "all": "Any price",
+      "free": "Free",
+      "paid": "Paid"
+    },
+    "sortLabel": "Sort by",
+    "sort": {
+      "newest": "Newest",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low"
+    },
+    "resultCount": "{count, plural, =0 {No courses found} one {# course found} other {# courses found}}",
+    "clearFilters": "Clear filters",
+    "noResults": "No courses match your search. Try other words or clear the filters."
   },
   "account": {
     "title": "My account",
@@ -146,7 +187,11 @@
       "refunds": "Refunds",
       "orders": "Orders",
       "sales": "Sales",
-      "earnings": "Earnings"
+      "earnings": "Earnings",
+      "overview": "Overview",
+      "doctorsEarnings": "Doctors' earnings",
+      "owner": "Owner",
+      "manager": "Manager"
     },
     "common": {
       "save": "Save",
@@ -203,7 +248,10 @@
       "open": "Open",
       "viewLive": "View on site",
       "archivedHint": "Archived courses are hidden from students. Open one and choose Unarchive to put it back on sale.",
-      "unarchiveFailed": "Could not unarchive."
+      "unarchiveFailed": "Could not unarchive.",
+      "searchStaff": "Search by course or doctor",
+      "searchMine": "Search your courses",
+      "noMatch": "No courses match your search."
     },
     "course": {
       "newTitle": "New course",
@@ -304,7 +352,9 @@
       "confirmDone": "{name} is now an owner.",
       "confirmInvalid": "This link is invalid, has expired, or was already used. It also only works for the owner who asked for it. Start again from the users page.",
       "backToUsers": "Back to users",
-      "sendAgain": "OK"
+      "sendAgain": "OK",
+      "master": "Master owner",
+      "masterLocked": "Nobody can change or remove the master owner."
     },
     "roles": {
       "superadmin": "Owner",
@@ -443,6 +493,56 @@
       "deleteConfirm": "Delete record",
       "passwordLabel": "Your password",
       "passwordHelp": "Type your own password to confirm."
+    },
+    "overview": {
+      "title": "Overview",
+      "ownerHelp": "What needs your attention, and where the money goes.",
+      "managerHelp": "What is waiting for a decision.",
+      "queueReceipts": "Receipts to review",
+      "queueRefunds": "Refund requests",
+      "queueCourses": "Courses in review",
+      "publishedCourses": "Published courses",
+      "students": "Students",
+      "revenueTitle": "Revenue",
+      "revenueHelp": "Paid orders only. Refunded orders are not counted.",
+      "gross": "Paid by students",
+      "grossHint": "Total of every paid order",
+      "platform": "Platform share",
+      "platformHint": "Your revenue",
+      "doctors": "Doctors' share",
+      "doctorsHint": "Earned by doctors in total",
+      "owed": "Still owed to doctors",
+      "owedHint": "Already paid out: {paid}",
+      "splitLabel": "Doctors {doctors}%, platform {platform}%",
+      "sales": "Sales",
+      "free": "Free enrollments",
+      "refunded": "Refunded",
+      "byMonth": "By month",
+      "colMonth": "Month",
+      "byDoctor": "By doctor",
+      "byDoctorHelp": "Who earned what, and what is still owed to each.",
+      "payoutsLink": "Record payouts",
+      "paidOut": "Paid out",
+      "colDoctor": "Doctor",
+      "colCourse": "Course",
+      "byCourse": "Best-selling courses",
+      "noSales": "No sales yet.",
+      "doctorTitle": "Hello, {name}",
+      "doctorHelp": "Your courses, your students, and what you have earned.",
+      "doctorEarned": "Total earned",
+      "doctorPaid": "Paid to you",
+      "doctorOwed": "Owed to you",
+      "doctorStudents": "Students enrolled",
+      "myCourses": "Your courses",
+      "manageCourses": "Manage courses",
+      "recentSales": "Latest sales",
+      "allEarnings": "All earnings",
+      "noDoctorSales": "No sales yet. They appear here once a student's payment is approved.",
+      "viewAll": "View all",
+      "moreWaiting": "{count} more waiting",
+      "caughtUpTitle": "You are all caught up",
+      "caughtUpBody": "No receipts, refund requests, or courses are waiting. New ones will appear here.",
+      "platformFacts": "{courses, plural, one {# published course} other {# published courses}} · {students, plural, one {# student} other {# students}}"
     }
   },
   "menu": {
@@ -554,7 +654,17 @@
     "viewOrder": "View order",
     "noAccount": "New here?",
     "createAccount": "Create an account",
-    "startLearning": "Start learning"
+    "startLearning": "Start learning",
+    "yourCourse": "This is your course. Students buy it from this page.",
+    "staffView": "You are signed in as platform staff. Staff accounts do not buy courses.",
+    "doctorView": "Doctor accounts do not buy courses. Use a student account to learn.",
+    "manageCourse": "Manage this course",
+    "progressLabel": "Your progress in this course",
+    "learn": {
+      "start": "Start learning",
+      "continue": "Continue learning",
+      "review": "Review course"
+    }
   },
   "watch": {
     "back": "Back to the course",
@@ -574,7 +684,11 @@
     "register": "Create an account",
     "videoTitle": "Video: {title}",
     "startLearning": "Start learning",
-    "lockedLesson": "Locked"
+    "lockedLesson": "Locked",
+    "markComplete": "Mark as complete",
+    "completedUndo": "Completed. Tap to undo",
+    "completed": "Completed",
+    "progressTitle": "Your progress in this course"
   },
   "myCourses": {
     "title": "My courses",
@@ -586,6 +700,22 @@
     "coursePage": "Course page",
     "archivedNote": "No longer sold, but you keep full access.",
     "lessons": "{count, plural, =0 {No lessons} one {# lesson} other {# lessons}}",
-    "by": "By {name}"
+    "by": "By {name}",
+    "progressLabel": "Your progress in this course",
+    "learn": {
+      "start": "Start learning",
+      "continue": "Continue learning",
+      "review": "Review course"
+    }
+  },
+  "pager": {
+    "label": "Pages",
+    "previous": "Previous",
+    "next": "Next",
+    "position": "Page {page} of {total}"
+  },
+  "progress": {
+    "count": "{done} of {total} lessons",
+    "complete": "Completed"
   }
 }

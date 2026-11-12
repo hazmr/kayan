@@ -12,12 +12,9 @@ interface PageProps {
   params: Promise<{ doctorId: string }>
 }
 
-// One doctor's earnings, for managers and the owner. Only the owner can record payouts.
+// One doctor's earnings, for the owner only (who is also the only one who records payouts).
 export default async function DoctorEarningsPage({ params }: PageProps) {
-  const [user, { doctorId }] = await Promise.all([
-    requireDashboardUser('superadmin', 'manager'),
-    params,
-  ])
+  const [user, { doctorId }] = await Promise.all([requireDashboardUser('superadmin'), params])
   if (!UUID.test(doctorId)) notFound()
 
   const data = await getOwnerEarnings(user, doctorId).catch((error: unknown) => {

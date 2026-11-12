@@ -1,15 +1,15 @@
 import { getTranslations } from 'next-intl/server'
 
-import { isStaff } from '@/access/roles'
+import { isSuperadmin } from '@/access/roles'
 import { DoctorBalancesTable, EarningsView } from '@/components/dashboard/EarningsView'
 import { requireDashboardUser } from '@/lib/dashboard/requireUser'
 import { getOwnerEarnings, listDoctorBalances } from '@/lib/earnings/getOwnerEarnings'
 
-// A doctor sees their own earnings. Managers and the owner see every doctor's balance.
+// A doctor sees their own earnings. The owner sees every doctor's balance. Managers are sent away.
 export default async function EarningsPage() {
-  const user = await requireDashboardUser()
+  const user = await requireDashboardUser('superadmin', 'admin')
 
-  if (!isStaff(user)) {
+  if (!isSuperadmin(user)) {
     return (
       <EarningsView
         data={await getOwnerEarnings(user, user.id)}

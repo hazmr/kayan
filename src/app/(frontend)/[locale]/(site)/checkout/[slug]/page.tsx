@@ -25,6 +25,9 @@ export default async function CheckoutPage({ params }: PageProps) {
     return redirect({ href: { pathname: '/login', query: { next: `/checkout/${slug}` } }, locale })
   }
 
+  // Doctors and staff never buy: the course page shows them what they can do instead.
+  if (user.role !== 'student') return redirect({ href: `/courses/${slug}`, locale })
+
   const course = await getPublishedCourse(slug, locale)
   if (!course) notFound()
 
