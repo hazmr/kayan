@@ -15,6 +15,7 @@ import { Enrollments } from '@/collections/Enrollments'
 import { Modules } from '@/collections/Modules'
 import { Orders } from '@/collections/Orders'
 import { OwnerPromotions } from '@/collections/OwnerPromotions'
+import { Payouts } from '@/collections/Payouts'
 import { Receipts } from '@/collections/Receipts'
 import { Users } from '@/collections/Users'
 import { PaymentSettings } from '@/globals/PaymentSettings'
@@ -49,6 +50,7 @@ export default buildConfig({
     Orders,
     Receipts,
     Enrollments,
+    Payouts,
   ],
   globals: [PlatformSettings, PaymentSettings],
 

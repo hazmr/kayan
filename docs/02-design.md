@@ -710,3 +710,15 @@ The pages only decide what to show. Every action is checked again by the API, ex
 | Doctors read orders through `listSalesForDoctor`, not through the API. It returns a `SaleRow` with no email, phone, method, receipt, refund details, or order reference. The reference is also kept out of React keys, because Next.js copies keys into the page data. | Privacy by construction: what is not in the type cannot reach the page. |
 | The account menu has My courses, My orders, My account, in that order; the home page links to My courses for logged-in users. | The student's main destinations. |
 
+### Changes made while building M6 (earnings and payouts)
+
+| Change | Why |
+|--------|-----|
+| The balance is `sum of ownerAmount on paid orders - sum of payouts`, written as plain functions in `src/lib/earnings/calculate.ts` with no database in them. A refunded order stops being "paid", so it drops out of the first sum: that alone produces the negative balance after a refund. | One rule, easy to test, no special cases. |
+| Earnings are read from orders by the doctor locked in on the order (`orders.owner`), not from the course's current owner. | Moving a course to another doctor must not move past earnings. |
+| Payouts are written only by `POST /api/payouts/record` (owner only). The system records that money was sent; it never moves money. The amount is whole piasters, at least 1 and at most EGP 10,000,000; the date is the day the money was sent and cannot be more than a day ahead; the target must be a doctor account. | The access table: only the owner records payouts. |
+| An over-payment is allowed (the dialog warns, and the balance goes negative until sales cover it). | The owner may pay in advance. |
+| A payout record can be removed (`POST /api/payouts/:id/delete`), which needs the owner's password. The doctor is emailed when a payout is recorded and when one is removed. | Assumption A13: mistakes are fixed by deleting and recording again. A financial record disappearing must be deliberate and visible. |
+| Doctors read only their own earnings and payouts (the payouts API is limited to the doctor's own records; orders are read on their behalf after checking who is asking). Managers read everyone's, read-only; students and guests are refused. | The access table: read earnings and payouts - own only for doctors. |
+| The password check used by role changes and user deletion now lives in `src/lib/auth/verifyPassword.ts` and is shared with payouts. | One implementation of a security check. |
+

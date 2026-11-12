@@ -77,6 +77,7 @@ export interface Config {
     orders: Order;
     receipts: Receipt;
     enrollments: Enrollment;
+    payouts: Payout;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -101,6 +102,7 @@ export interface Config {
     orders: OrdersSelect<false> | OrdersSelect<true>;
     receipts: ReceiptsSelect<false> | ReceiptsSelect<true>;
     enrollments: EnrollmentsSelect<false> | EnrollmentsSelect<true>;
+    payouts: PayoutsSelect<false> | PayoutsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -381,6 +383,20 @@ export interface Enrollment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payouts".
+ */
+export interface Payout {
+  id: string;
+  owner: string | User;
+  amount: number;
+  paidAt: string;
+  paidBy: string | User;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -442,6 +458,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'enrollments';
         value: string | Enrollment;
+      } | null)
+    | ({
+        relationTo: 'payouts';
+        value: string | Payout;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -675,6 +695,19 @@ export interface EnrollmentsSelect<T extends boolean = true> {
   course?: T;
   order?: T;
   status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payouts_select".
+ */
+export interface PayoutsSelect<T extends boolean = true> {
+  owner?: T;
+  amount?: T;
+  paidAt?: T;
+  paidBy?: T;
+  note?: T;
   updatedAt?: T;
   createdAt?: T;
 }

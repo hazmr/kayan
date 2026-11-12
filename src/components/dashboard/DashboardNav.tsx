@@ -8,6 +8,7 @@ import {
   Settings,
   Undo2,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -16,6 +17,7 @@ import { Link, usePathname } from '@/i18n/navigation'
 const ICONS = {
   courses: LayoutList,
   orders: Receipt,
+  earnings: Wallet,
   payments: CreditCard,
   refunds: Undo2,
   categories: FolderTree,

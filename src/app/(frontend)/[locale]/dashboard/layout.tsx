@@ -23,6 +23,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const coursesItem: NavItem = { href: '/dashboard/courses', label: t('courses'), icon: 'courses' }
   const items: NavItem[] = [coursesItem]
   // Doctors see their own sales here; managers and the owner see every order.
+  const earningsItem: NavItem = {
+    href: '/dashboard/earnings',
+    label: t('earnings'),
+    icon: 'earnings',
+  }
   const ordersItem: NavItem = {
     href: '/dashboard/orders',
     label: staff ? t('orders') : t('sales'),
@@ -48,10 +53,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       badge: refunds > 0 ? String(refunds) : undefined,
     })
     items.push(ordersItem)
+    items.push(earningsItem)
     items.push({ href: '/dashboard/categories', label: t('categories'), icon: 'categories' })
     items.push({ href: '/dashboard/users', label: t('users'), icon: 'users' })
   }
-  if (!staff) items.push(ordersItem)
+  if (!staff) items.push(ordersItem, earningsItem)
   if (isSuperadmin(user)) {
     items.push({ href: '/dashboard/settings', label: t('settings'), icon: 'settings' })
   }
