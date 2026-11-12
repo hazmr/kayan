@@ -393,9 +393,10 @@ The lesson page is a Server Component. It calls `canWatchLesson`, then `getVideo
 |------|------------|---------|----------------|
 | Courses, modules, lessons, media | all | all | own |
 | Categories | manage | manage | hidden, can pick one in the course form |
-| Orders, receipts, enrollments | all | all | hidden |
-| Earnings view (`/admin/earnings`) | any doctor | any doctor | own: sales per course, balance, payouts, buyer names (D9) |
-| Payouts | create | read | through the earnings view |
+| Orders, receipts, enrollments | all | all (amount paid only, never the split) | hidden |
+| Earnings view (`/admin/earnings`) | any doctor | hidden (changed after M6) | own: sales per course, balance, payouts, buyer names (D9) |
+| Revenue overview (dashboard home) | all money: paid, platform share, doctors share, owed | work queues only | own earnings |
+| Payouts | create | hidden (changed after M6) | through the earnings view |
 | Users | manage | read | hidden |
 | Payment and platform settings | manage | hidden | hidden |
 
@@ -438,13 +439,16 @@ Later, Paymob adds one route: `POST /api/payments/paymob/webhook`, which calls `
 | Create users, change roles | Field-level access on `role`. Collection create is open for registration but always produces a student. |
 | Delete courses or users | Collection delete access: superadmin. Hooks refuse a course with enrollments and the last superadmin. |
 | Set ownerSharePercent | Field-level access: superadmin |
+| Touch the master owner (role, edit, delete, set the flag) | Nobody through the app: user hooks `protectMasterOwnerOnChange` / `OnDelete`, checked again by the role and delete endpoints |
 | Record payouts | Collection create access: superadmin |
 | Approve or reject receipts | Role check in the endpoint |
 | Refund orders | Role check in the endpoint |
 | Publish courses | Role check in the endpoint, plus `COURSE_TRANSITIONS` |
 | Edit courses, modules, lessons | Collection update access: staff all, admin where `owner` is the user |
-| Read orders | Collection read access: staff all, student own. Doctors through the earnings view. |
-| Read earnings and payouts | Earnings function checks the role. Payouts read access: staff all, admin own. |
+| Read orders | Collection read access: staff all, student own. Doctors through the earnings view. The fields `owner` and `ownerAmount` (the split) are field-level readable by the owner only. |
+| Read earnings and payouts | Earnings functions check the role: owner all, doctor own, managers refused. Payouts read access: superadmin all, admin own. |
+| Read the share percent on a course | Field-level access: owner and the course's own doctor |
+| Buy or enroll | `startOrder` refuses anyone who is not a student (`ONLY_STUDENTS_CAN_BUY`) |
 | Manage categories | Collection access: manager and superadmin write, everyone reads |
 
 ## 9. Errors
@@ -719,6 +723,79 @@ The pages only decide what to show. Every action is checked again by the API, ex
 | Payouts are written only by `POST /api/payouts/record` (owner only). The system records that money was sent; it never moves money. The amount is whole piasters, at least 1 and at most EGP 10,000,000; the date is the day the money was sent and cannot be more than a day ahead; the target must be a doctor account. | The access table: only the owner records payouts. |
 | An over-payment is allowed (the dialog warns, and the balance goes negative until sales cover it). | The owner may pay in advance. |
 | A payout record can be removed (`POST /api/payouts/:id/delete`), which needs the owner's password. The doctor is emailed when a payout is recorded and when one is removed. | Assumption A13: mistakes are fixed by deleting and recording again. A financial record disappearing must be deliberate and visible. |
-| Doctors read only their own earnings and payouts (the payouts API is limited to the doctor's own records; orders are read on their behalf after checking who is asking). Managers read everyone's, read-only; students and guests are refused. | The access table: read earnings and payouts - own only for doctors. |
+| Doctors read only their own earnings and payouts (the payouts API is limited to the doctor's own records; orders are read on their behalf after checking who is asking). *Superseded by the role-views change below:* managers no longer read earnings or payouts. | The access table: read earnings and payouts - own only for doctors. |
 | The password check used by role changes and user deletion now lives in `src/lib/auth/verifyPassword.ts` and is shared with payouts. | One implementation of a security check. |
+
+### Changes made after Phase 4: each role gets its own view
+
+Raised by the owner: a doctor saw the site like a student (and could "buy" their own course), and managers saw money they should not.
+
+| Change | Why |
+|--------|-----|
+| Only student accounts buy or enroll. `startOrder` refuses everyone else with `ONLY_STUDENTS_CAN_BUY`, including a doctor on their own course and the owner. | A doctor buying their own course makes no sense, and a rule that only the screen enforces is not a rule. A doctor who also wants to learn uses a student account. (To allow doctors to buy other doctors' courses later, relax this one check and the matching screen checks.) |
+| On the site, doctors and staff get a box instead of the Buy button (own course: "Manage this course"; staff: a note and the same link). `/checkout`, `/my-courses` and `/orders` send them away, and their account menu has no "My courses" or "My orders". The home page offers "Open your dashboard". | The site stops pretending they are students. |
+| `/dashboard` is now an Overview, different per role: the owner sees the work queues plus the whole money picture; a manager sees the queues and nothing about money; a doctor sees their own earnings, students, courses, and latest sales. | One door, three rooms. |
+| The owner's money picture (`src/lib/earnings/revenue.ts`, pure functions, tested alone): what students paid = platform share + doctors share; doctors share = paid out + still owed. Platform share is `amount - ownerAmount`, so a rounded-down piaster stays with the platform. By month (Cairo time), by doctor, by course. Refunded orders are excluded and shown on their own line; free enrollments are counted apart. | The owner asked for "my revenue, the other revenue, and the total". |
+| Managers lose all money: earnings pages, payouts, and the split fields on orders and the share percent on courses are now readable only by the owner (and the course's doctor for the percent). Managers still see what the student paid on an order, because they must match it to the transfer. | Enforced in field-level access, not only on screen. |
+
+### Changes made after Phase 4: the master owner, and the manager's home
+
+| Change | Why |
+|--------|-----|
+| One account can be the **master owner**: a protected `users.isMasterOwner` flag. The database allows at most one (a hand-written partial unique index, `users_one_master_owner`). The flag is closed to the API (field access) and to our own code (the user hooks refuse changes), and is set only by `pnpm master:set` (`src/scripts/set-master-owner.ts`), which uses its own context flag `MASTER_OWNER_SCRIPT`. | The owner asked for an account that nobody, other owners included, can demote, edit, or delete. They asked for "id 0", but our ids are UUIDs (a primary key that many tables point at, which cannot be 0 or be rewritten safely), so a flag with a database-level guarantee gives the same protection. |
+| What is refused for the master: role change (by anyone, the master too), delete, and any save by another user (name, email, password, verified). The master may edit their own name, phone, and password. The role and delete endpoints answer `MASTER_OWNER_PROTECTED` before asking for a password. The "trusted" flag used by the role endpoint does not skip these hooks. | The role endpoint is itself "trusted", so the protection must not depend on that flag. |
+| Not covered, by design: someone with access to the database or the server can still change the flag by hand. Moving the title needs `MASTER_OWNER_REPLACE=yes` and server access. | The server is the root of trust. |
+| The manager's home is a work list: the three queue counts, then the oldest few receipts, refund requests, and courses in review (who, what, what was paid, how long waiting), each row opening where it is dealt with; "all caught up" when nothing waits. Staff menus put the queues first (Payments, Refunds, Courses). | The first version was five numbers and empty space. A manager should start work from the first screen. |
+
+### Changes made after Phase 4: catalog search, progress, navbar, simpler home
+
+| Change | Why |
+|--------|-----|
+| Catalog search, price filter, sorting, and 12-per-page pages (`searchPublishedCourses`, address parsing in `src/lib/catalog/params.ts`). Search matches `title.ar`, `title.en`, and `owner.name` with `contains`; the published filter is always one side of an `and`. The characters `%` and `_` are removed from the words. The dashboard course list got the same search and 20 per page (`searchCourses`, still with access control). | The catalog loaded at most 60 courses with no way to find one. |
+| Lesson progress: collection `lesson-progress` (user, course, lesson, completedAt; unique per user and lesson), written only by `POST /api/lesson-progress/set` through `setLessonCompleted` (student with an active enrollment; one row per lesson even under simultaneous clicks, using the same user-row lock as `startOrder`). Rules as plain functions in `src/lib/progress/calculate.ts`: percent rounds down, only lessons still in the course count, continue = first lesson not completed. Deleting a lesson deletes its marks first. A student reads only their own rows. | The student wants to see where they are. Manual "mark complete" because the YouTube embed cannot report that a video was finished without its separate player API (not added). |
+| The header has three parts: logo, centred links (Courses; My courses for students; Dashboard for doctors and staff), and the account on the other side. On a phone the links drop to a second row. "My courses" and "Dashboard" were removed from the account menu so no link appears twice. | Asked for by the owner. |
+| The home page is three sections: hero, how it works with the second picture, and the newest courses. Each button appears once (the header's Log in, Sign up, Courses, and Dashboard are not repeated in the page). | Simplified at the owner's request. |
+| `pnpm demo:seed` adds one big free demo course (6 modules, 36 lessons) to a development database. | To try the player, the progress tracker, and the lesson list with real amounts. |
+
+## 15. Phase 4: testing
+
+Run with `pnpm test` (unit and integration) and `pnpm test:e2e` (browser). See the README for setup.
+Each test run builds its own throwaway database from the real migration files.
+
+### What covers what
+
+| Requirement from the brief | Test |
+|----------------------------|------|
+| Unit tests for `fulfillOrder` | `tests/integration/fulfillOrder.test.ts`: paid and enrolled, idempotent, 6 callers at once give one enrollment and one email, reactivates a revoked enrollment, refuses wrong states, rolls back if the enrollment fails |
+| Unit tests for `refundOrder` | `tests/integration/refundOrder.test.ts`: revokes access, idempotent, simultaneous calls, owner/manager only, free orders refused, plus the refund-request flow |
+| Role views and revenue (added after Phase 4) | `tests/unit/revenue.test.ts` (the split, refunds, payouts, months in Cairo time), `tests/integration/revenue.test.ts` (against real sales; managers refused; only students buy; share percent hidden) and `tests/e2e/roles.spec.ts` plus the last steps of `purchase.spec.ts` (what each role sees, in English and Arabic) |
+| The balance calculation | `tests/unit/calculate.test.ts` (the rule on its own, including negative balances after a refund) and `tests/integration/payouts.test.ts` (against real sales, refunds, and payouts) |
+| Both adapters | `tests/unit/paymentAdapter.test.ts` (manual payments, registry) and `tests/unit/videoAdapter.test.ts` (YouTube, registry) |
+| An access test for every row of the access table | `tests/integration/accessTable.test.ts`, one block per row in the table's order, each tried as owner, manager, the course's doctor, another doctor, student, and guest |
+| The rules under the table | The same file, plus `lastSuperadmin.test.ts` (the last owner) and `watch.test.ts` (lesson videos) |
+| One browser test for the purchase flow | `tests/e2e/purchase.spec.ts` |
+
+Beyond the brief: the order flow (`orderFlow.test.ts`: price lock, one open order, receipt checks,
+reject and re-upload, archiving), translations (every error code has Arabic and English text, with
+the same placeholders), and the helpers for slugs, redirects, and YouTube links.
+
+### How the tests were checked
+
+A test that cannot fail proves nothing, so five important rules were broken on purpose, one at a time,
+and each time the tests failed: the idempotency guard in `fulfillOrder`, "everyone may watch every
+lesson", the owner-only check on payouts, rounding the doctor's share to nearest instead of down, and
+"approving a payment gives the student access" (caught by the browser test).
+
+### Found while writing the tests
+
+- `slugify` turned accented letters into dashes inside words ("déjà" became "de-ja"). Fixed.
+
+### Not covered yet
+
+- The screens themselves (layout, Arabic right-to-left, phone sizes) were checked by hand with scratch
+  scripts, not by automated tests. The browser test covers English only.
+- Email text is checked for the key facts (amounts, notes), not for how it looks in a mail client.
+- No tests for the Paymob or Bunny adapters, because they do not exist yet. Each will need the same
+  kind of adapter test as the existing ones.
+- No load or performance tests, and no automated accessibility audit.
 

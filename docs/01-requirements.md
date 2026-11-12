@@ -67,7 +67,14 @@ Each story has an ID so later phases and tests can point back to it. Error codes
 **G1. Browse the catalog.** As a guest, I want to browse courses so that I can find one worth buying.
 - Only `published` courses are listed. A draft, in-review, or archived course returns 404 to the public.
 - I can filter by category and by subcategory.
+- *Added after Phase 4:* I can search by course title (Arabic or English) or doctor name, filter free or paid, and sort by newest or price. The catalog shows 12 courses a page. All of it lives in the page address, so a view can be shared. Search never returns a course that is not published.
 - Each card shows thumbnail, title, doctor name, and price in EGP, or "Free" when the price is 0.
+
+**S-progress. Track my progress.** *(Added after Phase 4.)* As a student, I want to see how far I am in each course I own.
+- Under each lesson's player I can press "Mark as complete" (and press again to undo). Only a student with an active enrollment can; doctors, staff, and guests cannot.
+- My courses and the course page show "3 of 10 lessons" with a bar, and "Continue learning" opens the first lesson I have not completed ("Start learning" at 0, "Review course" at 100%).
+- The lesson list marks completed lessons with a check.
+- Nobody can read another person's progress, staff included. A refunded student's progress is hidden with the course and comes back if they buy it again.
 
 **G2. See a course page.** As a guest, I want to read about a course before signing up.
 - The page shows title, description, thumbnail, price, doctor name, and the outline of modules and lessons with durations.
@@ -237,14 +244,15 @@ Each story has an ID so later phases and tests can point back to it. Error codes
 - Marking refunded twice has no further effect.
 - I can refund a paid order that has no request.
 
-**M7. See the money.** As a manager, I want an overview of sales.
-- I can read all orders, all doctors' earnings, and all payouts.
-- I cannot create, change, or delete a payout.
+**M7. See the work.** As a manager, I want an overview of what needs a decision.
+- My dashboard opens on the queues: receipts to review, refund requests, courses in review.
+- I can read all orders and see what each student paid (needed to match a receipt to a transfer).
+- *Changed after M6:* I never see the money split. No doctor earnings, no payouts, no platform or doctor share, no share percent. Only the owner and the doctor concerned do.
 
 **M8. Edit any course.** As a manager, I want to correct content.
 - I can edit any course, module, or lesson.
 
-A manager cannot change payment settings, create users, change roles, set share percent, record payouts, or delete courses or users.
+A manager cannot change payment settings, create users, change roles, see or set share percent, see earnings or payouts, record payouts, or delete courses or users.
 
 ### 3.5 Superadmin (owner)
 
@@ -254,6 +262,16 @@ A manager cannot change payment settings, create users, change roles, set share 
 - I can create users, change any user's role, and delete users.
 - Only I can write the role field. Anyone else's attempt is refused.
 - The last remaining superadmin cannot be demoted or deleted (`LAST_SUPERADMIN`).
+
+**O2b. See where the money goes.** As the owner, I want to see what students paid and how it splits.
+- My dashboard shows: what students paid, the platform's share (my revenue), the doctors' share, what was paid out, what is still owed.
+- It also breaks the same numbers down by month, by doctor, and by course. Refunded orders are not counted; they have their own line.
+
+**O2c. The master owner.** As the person who runs the business, I want one account that nobody can take away from me.
+- One account is the master owner. Nobody can change its role, edit it (name, email, password), or delete it from the app, not even other owners and not even the master themselves for the role.
+- Nobody can mark another account as master through the app. Only a command run on the server (`pnpm master:set`) picks, or moves, the master owner.
+- The master owner still edits their own name, phone, and password like anyone else.
+- The Users page marks the master owner and offers no role or delete controls on that row.
 
 **O3. Set payment details.** As the owner, I want to control where students send money.
 - I can set the InstaPay address and the Vodafone Cash number.
@@ -296,7 +314,7 @@ A manager cannot change payment settings, create users, change roles, set share 
 | Receipt review, cancel, refund requests | Re-review of edits to live courses |
 | Enrollment-gated YouTube player, guest previews | Emails to doctors about course review |
 | My courses, order views per role | "Apply to teach" form |
-| Earnings page and recorded payouts | Quizzes, certificates, reviews, lesson progress |
+| Earnings page and recorded payouts, lesson progress (added after Phase 4) | Quizzes, certificates, reviews |
 
 ## 5. Risks to know about
 
