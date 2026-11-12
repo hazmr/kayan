@@ -6,12 +6,16 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /** "Equine Surgery 101" -> "equine-surgery-101". Returns '' when nothing Latin is left (Arabic titles). */
 export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
+  return (
+    text
+      .toLowerCase()
+      .normalize('NFKD')
+      // Accents become separate marks after NFKD (é = e + ´). Drop the marks, keep the letter.
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80)
+  )
 }
 
 /** A title arrives as plain text, or as { ar, en } when both languages are saved at once. */
