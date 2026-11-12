@@ -1,6 +1,8 @@
+import path from 'path'
 import type { CollectionConfig } from 'payload'
 
 import { closed, readOwnReceiptOrStaff } from '@/access/orders'
+import { env } from '@/lib/env'
 
 import { collectionLabels } from '../shared/labels'
 
@@ -17,7 +19,7 @@ export const Receipts: CollectionConfig = {
   },
   upload: {
     // Kept outside /media, which is public. Development only: production uses R2.
-    staticDir: 'receipts',
+    staticDir: path.join(env.uploadsDir, 'receipts'),
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
   },
   fields: [

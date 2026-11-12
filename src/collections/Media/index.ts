@@ -1,6 +1,8 @@
+import path from 'path'
 import type { CollectionConfig } from 'payload'
 
 import { anyone, createCourseContent, staffOnly } from '@/access/courses'
+import { env } from '@/lib/env'
 
 import { collectionLabels, label } from '../shared/labels'
 
@@ -15,7 +17,7 @@ export const Media: CollectionConfig = {
     delete: staffOnly,
   },
   upload: {
-    staticDir: 'media',
+    staticDir: path.join(env.uploadsDir, 'media'),
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
     // One resized copy for course cards, so the catalog does not download full-size uploads.
     imageSizes: [{ name: 'card', width: 640, height: 360, position: 'centre' }],

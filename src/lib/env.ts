@@ -29,6 +29,9 @@ export const env = {
   payloadSecret: required('PAYLOAD_SECRET'),
   siteUrl: required('NEXT_PUBLIC_SITE_URL').replace(/\/+$/, ''),
   isProduction: process.env.NODE_ENV === 'production',
+  // Where uploaded files are kept on disk (development and tests). Default: the project folder.
+  // Production moves to object storage (Cloudflare R2), where this is not used.
+  uploadsDir: optional('UPLOADS_DIR') ?? '.',
   smtp: {
     host: required('SMTP_HOST'),
     port: port('SMTP_PORT', 587),
