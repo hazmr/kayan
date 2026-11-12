@@ -55,7 +55,6 @@ beforeAll(async () => {
   await course(doctor, `${TAG} الأشعة`, { price: 0 }, `${TAG} Radiology`)
   await course(otherDoctor, `${TAG} طب الخيول`, { price: 10000 })
   await course(doctor, `${TAG} مسودة سرية`, { status: 'draft' })
-  await course(doctor, `${TAG} مراجعة`, { status: 'in_review' })
   await course(doctor, `${TAG} مؤرشفة`, { status: 'archived' })
 })
 afterAll(() => stopApp(payload))
@@ -77,12 +76,12 @@ describe('catalog search', () => {
     expect((await search({ locale: 'en', search: `${TAG} CAT SURGERY` })).totalDocs).toBe(1)
   })
 
-  it('never returns a draft, in-review, or archived course, however it is searched', async () => {
-    for (const word of ['مسودة', 'مراجعة', 'مؤرشفة', `${TAG}-dr-nile`, TAG]) {
+  it('never returns a draft or archived course, however it is searched', async () => {
+    for (const word of ['مسودة', 'مؤرشفة', `${TAG}-dr-nile`, TAG]) {
       const result = await search({ locale: 'ar', search: word })
       for (const found of result.courses) {
         expect(
-          ['مسودة سرية', 'مراجعة', 'مؤرشفة'].some((secret) => found.title.endsWith(secret)),
+          ['مسودة سرية', 'مؤرشفة'].some((secret) => found.title.endsWith(secret)),
           word,
         ).toBe(false)
       }
@@ -135,13 +134,18 @@ describe('pages', () => {
 })
 
 describe('the dashboard course list', () => {
-  it("a doctor searches only their own courses, and staff search everyone's", async () => {
-    const mine = await searchCourses(doctor, { search: TAG, page: 1 })
-    expect(mine.rows.every((row) => row.ownerName === doctor.name)).toBe(true)
-    expect(mine.totalDocs).toBe(5) // two published, a draft, in review, archived
+  it('an instructor searches every course of the academy, drafts included, like the Admin', async () => {
+    const asInstructor = await searchCourses(doctor, { search: TAG, page: 1 })
+    const asAdmin = await searchCourses(owner, { search: TAG, page: 1 })
+    expect(asInstructor.totalDocs).toBe(asAdmin.totalDocs)
+    // the other instructor's course is in the list too
+    expect(asInstructor.rows.some((row) => row.ownerName === otherDoctor.name)).toBe(true)
+  })
 
-    const everyones = await searchCourses(owner, { search: TAG, page: 1 })
-    expect(everyones.totalDocs).toBeGreaterThanOrEqual(mine.totalDocs + 1)
+  it('a student gets nothing from the dashboard list', async () => {
+    const student = await makeUser(payload, 'student')
+    const result = await searchCourses(student, { search: TAG, page: 1 })
+    expect(result.rows.every((row) => row.status === 'published')).toBe(true)
   })
 
   it('combines the status tab with the search', async () => {

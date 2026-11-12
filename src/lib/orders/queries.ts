@@ -225,6 +225,8 @@ export interface OrderListItem {
   amountEgp: number
   courseTitle: string
   createdAt: string
+  /** A refund the student asked for and the academy has not decided yet. */
+  refundRequested: boolean
 }
 
 export async function listMyOrders(user: User, locale: Locale): Promise<OrderListItem[]> {
@@ -244,5 +246,6 @@ export async function listMyOrders(user: User, locale: Locale): Promise<OrderLis
     amountEgp: piastersToEgp(order.amount),
     courseTitle: typeof order.course === 'object' ? pickTitle(order.course.title, locale) : '',
     createdAt: order.createdAt,
+    refundRequested: order.refundStatus === 'requested',
   }))
 }

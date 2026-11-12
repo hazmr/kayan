@@ -1,46 +1,26 @@
 import { getTranslations } from 'next-intl/server'
 
-import { isSuperadmin, isStaff } from '@/access/roles'
-import { DoctorHome, QueueOverview, RevenueOverview } from '@/components/dashboard/Overviews'
+import { QueueOverview, RevenueOverview } from '@/components/dashboard/Overviews'
 import { requireDashboardUser } from '@/lib/dashboard/requireUser'
-import { getDoctorOverview, getStaffOverview } from '@/lib/dashboard/overview'
-import { getPlatformRevenue } from '@/lib/earnings/getPlatformRevenue'
+import { getStaffOverview } from '@/lib/dashboard/overview'
+import { getAcademyRevenue } from '@/lib/earnings/getAcademyRevenue'
 
-// Each role opens on its own page:
-//   owner    the work queues, then the whole money picture
-//   manager  the work queues only (managers never see revenue)
-//   doctor   their own earnings, students, courses, and latest sales
+// The same page for the Admin and every instructor: the work waiting, then the academy's money.
 export default async function DashboardHome() {
   const user = await requireDashboardUser()
-  const t = await getTranslations('dashboard.overview')
-
-  if (isStaff(user)) {
-    const [queues, revenue] = await Promise.all([
-      getStaffOverview(user),
-      isSuperadmin(user) ? getPlatformRevenue(user) : null,
-    ])
-    return (
-      <section className="flex flex-col gap-8">
-        <div>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground">
-            {revenue ? t('ownerHelp') : t('managerHelp')}
-          </p>
-        </div>
-        <QueueOverview data={queues} />
-        {revenue && <RevenueOverview data={revenue} />}
-      </section>
-    )
-  }
-
-  const data = await getDoctorOverview(user)
+  const [t, queues, revenue] = await Promise.all([
+    getTranslations('dashboard.overview'),
+    getStaffOverview(user),
+    getAcademyRevenue(user),
+  ])
   return (
     <section className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-bold">{t('doctorTitle', { name: user.name })}</h1>
-        <p className="text-sm text-muted-foreground">{t('doctorHelp')}</p>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('help')}</p>
       </div>
-      <DoctorHome data={data} />
+      <QueueOverview data={queues} />
+      <RevenueOverview data={revenue} />
     </section>
   )
 }

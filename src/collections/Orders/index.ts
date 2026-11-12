@@ -1,16 +1,13 @@
 import type { CollectionConfig, FieldAccess } from 'payload'
 
 import { closed, readOwnOrStaff } from '@/access/orders'
-import { isStaff, isSuperadmin } from '@/access/roles'
+import { isStaff } from '@/access/roles'
 import { ORDER_STATUSES, PAYMENT_METHODS } from '@/lib/orders/transitions'
 
 import { collectionLabels, label } from '../shared/labels'
 import { orderEndpoints } from './endpoints'
 
 const staffOnlyField: FieldAccess = ({ req: { user } }) => isStaff(user)
-
-/** How an order's money is split is the owner's business. Managers see what the student paid, not the split. */
-const superadminOnlyField: FieldAccess = ({ req: { user } }) => isSuperadmin(user)
 
 export const Orders: CollectionConfig = {
   slug: 'orders',
@@ -28,15 +25,6 @@ export const Orders: CollectionConfig = {
     { name: 'user', type: 'relationship', relationTo: 'users', required: true, index: true },
     { name: 'course', type: 'relationship', relationTo: 'courses', required: true, index: true },
     {
-      // The doctor who earns from this order. Copied from the course when the amount freezes,
-      // so moving a course to another doctor later does not move past earnings.
-      name: 'owner',
-      type: 'relationship',
-      relationTo: 'users',
-      index: true,
-      access: { read: superadminOnlyField },
-    },
-    {
       // While the order is pending this follows the course price. It freezes when the first
       // receipt is uploaded (amountFrozenAt is set), and never changes after that.
       name: 'amount',
@@ -46,11 +34,12 @@ export const Orders: CollectionConfig = {
       label: label('Amount (piasters)', 'المبلغ (بالقرش)'),
     },
     {
-      name: 'ownerAmount',
+      // The Admin's share of this order, frozen with the amount. The academy keeps the rest.
+      name: 'adminAmount',
       type: 'number',
       min: 0,
-      access: { read: superadminOnlyField },
-      label: label("Doctor's share (piasters)", 'نصيب الطبيب (بالقرش)'),
+      access: { read: staffOnlyField },
+      label: label("Admin's share (piasters)", 'نصيب مسؤول النظام (بالقرش)'),
     },
     { name: 'amountFrozenAt', type: 'date' },
     // Empty for free courses.
@@ -64,7 +53,7 @@ export const Orders: CollectionConfig = {
       index: true,
       options: [...ORDER_STATUSES],
     },
-    // The short code the student writes in the transfer note, such as VT-7K3M9Q.
+    // The short code the student writes in the transfer note, such as KY-7K3M9Q.
     { name: 'reference', type: 'text', required: true, unique: true, index: true },
     { name: 'providerRef', type: 'text' },
     { name: 'paidAt', type: 'date' },

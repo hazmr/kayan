@@ -14,7 +14,7 @@ function payloadWith(settings: {
   return { findGlobal: async () => settings } as unknown as Payload
 }
 const order = (method: string | null): Order =>
-  ({ id: 'o1', method, amount: 40000, reference: 'VT-ABC234' }) as unknown as Order
+  ({ id: 'o1', method, amount: 40000, reference: 'KY-ABC234' }) as unknown as Order
 
 describe('manual payment adapter (InstaPay and Vodafone Cash by hand)', () => {
   const payload = payloadWith({
@@ -27,7 +27,7 @@ describe('manual payment adapter (InstaPay and Vodafone Cash by hand)', () => {
       kind: 'instructions',
       payTo: 'shop@instapay', // trimmed
       amount: 40000,
-      reference: 'VT-ABC234',
+      reference: 'KY-ABC234',
     })
     expect(await manualProvider.startPayment(order('vodafone_cash'), { payload })).toMatchObject({
       payTo: '01000000099',

@@ -87,7 +87,7 @@ export async function startOrder({
     }
     // A free course locks its (zero) amounts right away; a paid one waits for the receipt.
     const data: RequiredDataFromCollectionSlug<'orders'> = isFree
-      ? { ...base, ...freezeAmounts(course, new Date()) }
+      ? { ...base, ...(await freezeAmounts(course, req, new Date())) }
       : { ...base, amount: course.price, provider: 'manual', method }
 
     const created = await req.payload.create({

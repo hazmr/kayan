@@ -138,7 +138,6 @@ const course = await payload.create({
       'دورة تجريبية كبيرة تضم ٣٦ درساً في ٦ وحدات: الفحص السريري، أمراض القطط والكلاب، الأشعة والمختبر، التخدير والجراحة، وإدارة العيادة.\n\nاستخدمها لتجربة المشغّل وتتبع التقدم وقائمة الدروس.',
     owner: doctor.id,
     price: 0,
-    ownerSharePercent: 70,
     ...(categories.docs[0] ? { category: categories.docs[0].id } : {}),
     slug: SLUG,
     status: 'draft',

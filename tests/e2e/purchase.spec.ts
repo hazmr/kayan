@@ -6,9 +6,9 @@ import { E2E } from '../support/e2eData'
 //
 //   a guest finds the course and sees only the free preview
 //   -> logs in, pays by InstaPay, uploads a receipt
-//   -> a manager approves it
+//   -> an instructor (the son) approves it
 //   -> the student now owns the course and watches the locked lesson
-//   -> the doctor sees the money in their earnings
+//   -> everyone who runs the academy sees the money, and a payment to the Admin is recorded
 //
 // Everything runs against a throwaway database (see playwright.config.ts).
 
@@ -31,7 +31,7 @@ async function newPerson(browser: Browser, email?: string): Promise<Page> {
   return page
 }
 
-test('a student buys a course, a manager approves it, the student watches and the doctor earns', async ({
+test('a student buys a course, an instructor approves it, the student watches, and the money adds up', async ({
   browser,
 }) => {
   const student = await newPerson(browser)
@@ -65,14 +65,14 @@ test('a student buys a course, a manager approves it, the student watches and th
   await test.step('the student chooses InstaPay and sees where to send EGP 400', async () => {
     await student.getByText('InstaPay').click()
     await student.getByRole('button', { name: 'Continue to payment' }).click()
-    await expect(student).toHaveURL(/\/orders\/VT-/)
+    await expect(student).toHaveURL(/\/orders\/KY-/)
     await expect(student.getByText('Waiting for payment', { exact: true }).first()).toBeVisible()
     await expect(student.getByText('test@instapay')).toBeVisible()
     await expect(student.getByText('EGP 400').first()).toBeVisible()
     reference = (
-      await student.locator('span[dir=ltr]', { hasText: /^VT-/ }).first().innerText()
+      await student.locator('span[dir=ltr]', { hasText: /^KY-/ }).first().innerText()
     ).trim()
-    expect(reference).toMatch(/^VT-[A-Z0-9]{6}$/)
+    expect(reference).toMatch(/^KY-[A-Z0-9]{6}$/)
   })
 
   await test.step('the student uploads the receipt and the order goes under review', async () => {
@@ -93,37 +93,37 @@ test('a student buys a course, a manager approves it, the student watches and th
     await expect(student.getByRole('link', { name: new RegExp(E2E.lockedLesson) })).toHaveCount(0)
   })
 
-  const manager = await newPerson(browser, E2E.manager)
-  await test.step("the manager's home lists the waiting receipt, oldest first, with what was paid", async () => {
-    await manager.goto('/en/dashboard')
-    const panel = manager.locator('section.overflow-hidden', { hasText: 'Receipts to review' })
+  const son = await newPerson(browser, E2E.son)
+  await test.step("an instructor's home lists the waiting receipt, oldest first, with what was paid", async () => {
+    await son.goto('/en/dashboard')
+    const panel = son.locator('section.overflow-hidden', { hasText: 'Receipts to review' })
     await expect(panel).toContainText(E2E.courseTitle)
     await expect(panel).toContainText('Test student')
     await expect(panel).toContainText('EGP 400')
     // clicking the row opens the review queue
     await panel.getByRole('link', { name: /Test student/ }).click()
-    await expect(manager).toHaveURL(/\/dashboard\/payments$/)
+    await expect(son).toHaveURL(/\/dashboard\/payments$/)
   })
 
-  await test.step('a manager sees the receipt in the queue and approves it', async () => {
-    await manager.goto('/en/dashboard/payments')
-    const card = manager.locator('article', { hasText: reference })
+  await test.step('an instructor sees the receipt in the queue and approves it', async () => {
+    await son.goto('/en/dashboard/payments')
+    const card = son.locator('article', { hasText: reference })
     await expect(card).toBeVisible()
     await expect(
       card.getByText('Buyer', { exact: false }).or(card.getByText(E2E.student)),
     ).toBeVisible()
     await expect(card.getByText('EGP 400').first()).toBeVisible()
     await expect(card.getByText('01012345678')).toBeVisible()
-    // the receipt image really loads for the manager
+    // the receipt image really loads for the instructor
     await expect(card.locator('img').first()).toHaveJSProperty('complete', true)
     await card.getByRole('button', { name: 'Approve' }).click()
-    await manager.getByRole('dialog').getByRole('button', { name: 'Yes, approve' }).click()
+    await son.getByRole('dialog').getByRole('button', { name: 'Yes, approve' }).click()
     await expect(card).toHaveCount(0)
   })
 
-  await test.step('with nothing left waiting, the manager home says so', async () => {
-    await manager.goto('/en/dashboard')
-    await expect(manager.getByText('You are all caught up')).toBeVisible()
+  await test.step('with nothing left waiting, the home page says so', async () => {
+    await son.goto('/en/dashboard')
+    await expect(son.getByText('You are all caught up')).toBeVisible()
   })
 
   await test.step('the student now owns the course', async () => {
@@ -199,59 +199,47 @@ test('a student buys a course, a manager approves it, the student watches and th
   })
 
   const doctor = await newPerson(browser, E2E.doctor)
-  await test.step('the doctor sees the sale and EGP 280 (70%) in their earnings', async () => {
+  await test.step('an instructor sees the new order among all orders of the academy', async () => {
     await doctor.goto('/en/dashboard/orders')
     await expect(doctor.locator('tbody tr')).toHaveCount(1)
     await expect(doctor.locator('tbody tr').first()).toContainText('EGP 400')
-    await expect(doctor.locator('tbody tr').first()).toContainText('EGP 280')
+  })
 
+  // The same sale, seen by everyone who runs the academy. The sale is EGP 400 and the Admin's share
+  // is 30% (set by the seed): EGP 120 to the Admin, EGP 280 stays with the academy.
+  for (const [who, email] of [
+    ['the Admin', E2E.owner],
+    ['an instructor', E2E.son],
+  ] as const) {
+    await test.step(`${who} sees the same money picture: paid, academy share, Admin's share, owed`, async () => {
+      const page = await newPerson(browser, email)
+      await page.goto('/en/dashboard')
+      await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+      // the first match is the stat card at the top (the tables below reuse the same words)
+      const card = (label: string) =>
+        page.locator('main').getByText(label, { exact: true }).first().locator('..')
+      await expect(card('Paid by students')).toContainText('EGP 400')
+      await expect(card('Academy share')).toContainText('EGP 280')
+      await expect(card("Admin's share")).toContainText('EGP 120')
+      await expect(card('Still owed to the Admin')).toContainText('EGP 120')
+    })
+  }
+
+  await test.step('an instructor records a payment to the Admin, and what is owed goes down', async () => {
     await doctor.goto('/en/dashboard/earnings')
-    await expect(doctor.getByRole('heading', { name: 'Your earnings' })).toBeVisible()
-    await expect(doctor.getByText('Total earned').locator('..')).toContainText('EGP 280')
-    await expect(doctor.getByText('Balance', { exact: true }).locator('..')).toContainText(
-      'EGP 280',
+    await expect(doctor.getByRole('heading', { name: "Admin's share" })).toBeVisible()
+    await expect(doctor.getByText('Still owed', { exact: true }).locator('..')).toContainText(
+      'EGP 120',
     )
-  })
-
-  // The same sale, seen by each role. The sale is EGP 400: EGP 280 to the doctor, EGP 120 stays
-  // with the platform. Only the owner may see that split.
-  await test.step('the owner sees the whole money picture: paid, platform share, doctors share', async () => {
-    const owner = await newPerson(browser, E2E.owner)
-    await owner.goto('/en/dashboard')
-    await expect(owner.getByRole('heading', { name: 'Overview' })).toBeVisible()
-    // the first match is the stat card at the top (the tables below reuse the same words)
-    const card = (label: string) => owner.getByText(label, { exact: true }).first().locator('..')
-    await expect(card('Paid by students')).toContainText('EGP 400')
-    await expect(card('Platform share')).toContainText('EGP 120')
-    await expect(card("Doctors' share")).toContainText('EGP 280')
-    await expect(card('Still owed to doctors')).toContainText('EGP 280')
-    await expect(owner.getByRole('link', { name: "Doctors' earnings" })).toBeVisible()
-  })
-
-  await test.step('a manager sees the work queues and no money at all', async () => {
-    await manager.goto('/en/dashboard')
-    await expect(manager.getByRole('heading', { name: 'Overview' })).toBeVisible()
-    await expect(manager.getByText('Receipts to review')).toBeVisible()
-    for (const label of ['Platform share', "Doctors' share", 'Paid by students']) {
-      await expect(manager.getByText(label)).toHaveCount(0)
-    }
-    await expect(manager.getByRole('link', { name: /earnings/i })).toHaveCount(0)
-    // typing the address by hand does not help either
-    await manager.goto('/en/dashboard/earnings')
-    await expect(manager).toHaveURL(/\/en\/dashboard$/)
-    // the orders list shows what the student paid, but never the doctor's share
-    await manager.goto('/en/dashboard/orders')
-    await expect(manager.locator('tbody tr').first()).toContainText('EGP 400')
-    await expect(manager.locator('body')).not.toContainText('EGP 280')
-    await expect(manager.locator('body')).not.toContainText('EGP 120')
-  })
-
-  await test.step("the doctor's home shows only their own earnings", async () => {
-    await doctor.goto('/en/dashboard')
-    await expect(doctor.getByRole('heading', { name: /^Hello,/ })).toBeVisible()
-    await expect(doctor.getByText('Total earned').locator('..')).toContainText('EGP 280')
-    await expect(doctor.getByText('Students enrolled').locator('..')).toContainText('1')
-    await expect(doctor.getByText('Platform share')).toHaveCount(0)
-    await expect(doctor.getByRole('link', { name: "Doctors' earnings" })).toHaveCount(0)
+    await doctor.getByRole('button', { name: 'Record a payment' }).click()
+    const dialog = doctor.getByRole('dialog')
+    await dialog.getByLabel('Amount sent (EGP)').fill('100')
+    await dialog.getByRole('button', { name: 'Record payment' }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(doctor.getByText('Still owed', { exact: true }).locator('..')).toContainText(
+      'EGP 20',
+    )
+    // only the Admin can remove a payment record
+    await expect(doctor.getByRole('button', { name: 'Delete' })).toHaveCount(0)
   })
 })

@@ -2,11 +2,12 @@
 
 export const E2E = {
   password: 'test-password-123',
+  /** The one Admin. */
   owner: 'owner@e2e.test',
-  /** A second owner, who is not the master. */
-  owner2: 'owner2@e2e.test',
-  manager: 'manager@e2e.test',
+  /** The instructor who teaches the course. */
   doctor: 'doctor@e2e.test',
+  /** A second instructor, who helps run the academy (the son). */
+  son: 'son@e2e.test',
   student: 'student@e2e.test',
   courseTitle: 'E2E Course',
   courseSlug: 'e2e-course',

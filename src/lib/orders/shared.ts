@@ -2,11 +2,11 @@ import { randomInt } from 'crypto'
 import type { PayloadRequest } from 'payload'
 
 import { relationId } from '@/collections/shared/relationId'
-import { DEFAULT_OWNER_SHARE_PERCENT } from '@/globals/PlatformSettings'
+import { DEFAULT_ADMIN_SHARE_PERCENT } from '@/globals/PlatformSettings'
 import { lockRow } from '@/lib/db/lockRow'
 import { courseTitleOf, type OrderEmailContext } from '@/lib/email/orderEmails'
 import { AppError } from '@/lib/errors/AppError'
-import { ownerShare } from '@/lib/money'
+import { adminShare } from '@/lib/money'
 import type { Course, Order, User } from '@/payload-types'
 
 /** Locks the order row and returns its fresh state. Call inside withTransaction. */
@@ -34,15 +34,19 @@ export async function loadCourse(courseId: string, req: PayloadRequest): Promise
 
 /**
  * The numbers an order locks in the moment the student commits (uploads a receipt, or enrolls
- * in a free course): the price, the doctor's share of it, and who the doctor is.
- * Later changes to the price, the percent, or the owner never touch this order.
+ * in a free course): the price, and the Admin's share of it at today's percent.
+ * Later changes to the price or the percent never touch this order.
  */
-export function freezeAmounts(course: Course, now: Date) {
-  const percent = course.ownerSharePercent ?? DEFAULT_OWNER_SHARE_PERCENT
+export async function freezeAmounts(course: Course, req: PayloadRequest, now: Date) {
+  const settings = await req.payload.findGlobal({
+    slug: 'platform-settings',
+    overrideAccess: true,
+    req,
+  })
+  const percent = settings.adminSharePercent ?? DEFAULT_ADMIN_SHARE_PERCENT
   return {
     amount: course.price,
-    ownerAmount: ownerShare(course.price, percent),
-    owner: relationId(course.owner) ?? undefined,
+    adminAmount: adminShare(course.price, percent),
     amountFrozenAt: now.toISOString(),
   }
 }
@@ -50,12 +54,12 @@ export function freezeAmounts(course: Course, now: Date) {
 // No 0/O or 1/I, which are easy to mix up when typing a code from a screenshot.
 const REFERENCE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
 
-/** A short code like VT-7K3M9Q that the student writes in the transfer note. */
+/** A short code like KY-7K3M9Q that the student writes in the transfer note. */
 export async function newReference(req: PayloadRequest): Promise<string> {
   for (let attempt = 0; attempt < 8; attempt++) {
     let code = ''
     for (let i = 0; i < 6; i++) code += REFERENCE_ALPHABET[randomInt(REFERENCE_ALPHABET.length)]
-    const reference = `VT-${code}`
+    const reference = `KY-${code}`
     const { totalDocs } = await req.payload.count({
       collection: 'orders',
       where: { reference: { equals: reference } },

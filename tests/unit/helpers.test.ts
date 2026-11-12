@@ -39,7 +39,7 @@ describe('parseYouTubeId (doctors paste whatever they copied)', () => {
 describe('safeNext (log in, then go back where you were)', () => {
   it('accepts a path on this site', () => {
     expect(safeNext('/checkout/some-course')).toBe('/checkout/some-course')
-    expect(safeNext('/orders/VT-ABC234')).toBe('/orders/VT-ABC234')
+    expect(safeNext('/orders/KY-ABC234')).toBe('/orders/KY-ABC234')
   })
 
   it.each([

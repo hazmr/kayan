@@ -12,10 +12,11 @@ import { sendJson } from '@/lib/api/postJson'
 
 import { useApiAction } from './shared'
 
-export function SettingsForm({ defaultOwnerSharePercent }: { defaultOwnerSharePercent: number }) {
+/** The Admin's percent of each sale. Only the Admin sees this form; instructors see the number. */
+export function SettingsForm({ adminSharePercent }: { adminSharePercent: number }) {
   const t = useTranslations('dashboard')
   const { run, pending, errorCode } = useApiAction()
-  const [share, setShare] = useState(String(defaultOwnerSharePercent))
+  const [share, setShare] = useState(String(adminSharePercent))
   const [saved, setSaved] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -23,7 +24,7 @@ export function SettingsForm({ defaultOwnerSharePercent }: { defaultOwnerSharePe
     setSaved(false)
     const result = await run(() =>
       sendJson('POST', '/api/globals/platform-settings', {
-        defaultOwnerSharePercent: Math.trunc(Number(share)),
+        adminSharePercent: Math.trunc(Number(share)),
       }),
     )
     if (result.ok) setSaved(true)
@@ -38,9 +39,9 @@ export function SettingsForm({ defaultOwnerSharePercent }: { defaultOwnerSharePe
         </Alert>
       )}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="default-share">{t('settings.shareLabel')}</Label>
+        <Label htmlFor="admin-share">{t('settings.shareLabel')}</Label>
         <Input
-          id="default-share"
+          id="admin-share"
           type="number"
           inputMode="numeric"
           min={0}
@@ -49,10 +50,10 @@ export function SettingsForm({ defaultOwnerSharePercent }: { defaultOwnerSharePe
           required
           value={share}
           onChange={(event) => setShare(event.target.value)}
-          aria-describedby="default-share-help"
+          aria-describedby="admin-share-help"
           dir="ltr"
         />
-        <p id="default-share-help" className="text-xs text-muted-foreground">
+        <p id="admin-share-help" className="text-xs text-muted-foreground">
           {t('settings.shareHelp')}
         </p>
       </div>

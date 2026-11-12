@@ -1,19 +1,40 @@
-import type { GlobalConfig } from 'payload'
+import type { GlobalAfterChangeHook, GlobalConfig } from 'payload'
 
-import { isStaff, isSuperadmin } from '@/access/roles'
+import { isStaff } from '@/access/roles'
 import { label } from '@/collections/shared/labels'
+import { sendPaymentDetailsChangedEmail } from '@/lib/email/adminPaymentEmails'
 
 /**
- * Where students send their money. Only the owner can change it: a wrong value here sends
- * every student's payment to the wrong account.
+ * Any change here is emailed to the Admin and every instructor, so nobody (the Admin included)
+ * can quietly send students' money to a different account.
+ */
+const announceChange: GlobalAfterChangeHook = async ({ doc, previousDoc, req }) => {
+  const before = {
+    instapay: previousDoc?.instapayAddress ?? '',
+    vodafone: previousDoc?.vodafoneCashNumber ?? '',
+  }
+  const after = { instapay: doc.instapayAddress ?? '', vodafone: doc.vodafoneCashNumber ?? '' }
+  if (before.instapay === after.instapay && before.vodafone === after.vodafone) return doc
+  await sendPaymentDetailsChangedEmail(req, {
+    by: req.user && 'name' in req.user ? String(req.user.name) : 'The system',
+    before,
+    after,
+  })
+  return doc
+}
+
+/**
+ * Where students send their money: the academy's own InstaPay and Vodafone Cash. The Admin and
+ * instructors can change it (it is the academy's account); every change is announced by email.
  */
 export const PaymentSettings: GlobalConfig = {
   slug: 'payment-settings',
   label: label('Payment settings', 'إعدادات الدفع'),
   access: {
     read: ({ req: { user } }) => isStaff(user),
-    update: ({ req: { user } }) => isSuperadmin(user),
+    update: ({ req: { user } }) => isStaff(user),
   },
+  hooks: { afterChange: [announceChange] },
   fields: [
     {
       name: 'instapayAddress',

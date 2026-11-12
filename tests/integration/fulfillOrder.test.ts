@@ -15,21 +15,23 @@ import {
   makeUser,
   reload,
   requestFor,
+  setAdminSharePercent,
   setPaymentSettings,
 } from '../support/factories'
 import { emails, startApp, stopApp } from '../support/payload'
 
 let payload: Payload
 let doctor: User
-let manager: User
+let staff: User
 let student: User
 let course: Course
 
 beforeAll(async () => {
   payload = await startApp()
   await setPaymentSettings(payload)
+  await setAdminSharePercent(payload, 30)
   doctor = await makeUser(payload, 'admin')
-  manager = await makeUser(payload, 'manager')
+  staff = await makeUser(payload, 'admin', 'staff')
   course = await makeCourse(payload, doctor, { price: 40000 })
   await makeLesson(payload, course)
 })
@@ -45,7 +47,7 @@ describe('fulfillOrder', () => {
     expect(waiting.status).toBe('awaiting_review')
     expect(await enrollmentsOf(payload, student, course)).toHaveLength(0)
 
-    const paid = await fulfillOrder(waiting.id, await requestFor(payload, manager))
+    const paid = await fulfillOrder(waiting.id, await requestFor(payload, staff))
 
     expect(paid.status).toBe('paid')
     expect(paid.paidAt).toBeTruthy()
@@ -57,17 +59,17 @@ describe('fulfillOrder', () => {
   it('emails the student exactly once', async () => {
     const waiting = await makeAwaitingReview(payload, student, course)
     emails.reset()
-    await fulfillOrder(waiting.id, await requestFor(payload, manager))
+    await fulfillOrder(waiting.id, await requestFor(payload, staff))
     expect(emails.to(student.email)).toHaveLength(1)
     expect(emails.to(student.email)[0]?.subject).toContain('Payment approved')
   })
 
   it('is idempotent: calling it again changes nothing and sends nothing', async () => {
     const waiting = await makeAwaitingReview(payload, student, course)
-    const first = await fulfillOrder(waiting.id, await requestFor(payload, manager))
+    const first = await fulfillOrder(waiting.id, await requestFor(payload, staff))
     emails.reset()
 
-    const second = await fulfillOrder(waiting.id, await requestFor(payload, manager))
+    const second = await fulfillOrder(waiting.id, await requestFor(payload, staff))
 
     expect(second.status).toBe('paid')
     expect(second.paidAt).toBe(first.paidAt) // not stamped again
@@ -81,7 +83,7 @@ describe('fulfillOrder', () => {
 
     const results = await Promise.all(
       Array.from({ length: 6 }, async () =>
-        fulfillOrder(waiting.id, await requestFor(payload, manager)),
+        fulfillOrder(waiting.id, await requestFor(payload, staff)),
       ),
     )
 
@@ -92,7 +94,7 @@ describe('fulfillOrder', () => {
 
   it('reactivates a revoked enrollment instead of creating a second one', async () => {
     const waiting = await makeAwaitingReview(payload, student, course)
-    await fulfillOrder(waiting.id, await requestFor(payload, manager))
+    await fulfillOrder(waiting.id, await requestFor(payload, staff))
     const [enrollment] = await enrollmentsOf(payload, student, course)
     await payload.update({
       collection: 'enrollments',
@@ -109,7 +111,7 @@ describe('fulfillOrder', () => {
     })
 
     const again = await makeAwaitingReview(payload, student, course)
-    await fulfillOrder(again.id, await requestFor(payload, manager))
+    await fulfillOrder(again.id, await requestFor(payload, staff))
 
     const enrollments = await enrollmentsOf(payload, student, course)
     expect(enrollments).toHaveLength(1)
@@ -123,7 +125,7 @@ describe('fulfillOrder', () => {
       req: await requestFor(payload, student),
     })
     expect(order.status).toBe('pending')
-    await expect(fulfillOrder(order.id, await requestFor(payload, manager))).rejects.toMatchObject({
+    await expect(fulfillOrder(order.id, await requestFor(payload, staff))).rejects.toMatchObject({
       code: 'ORDER_INVALID_STATE',
     })
     expect((await reload(payload, order)).status).toBe('pending')
@@ -143,25 +145,23 @@ describe('fulfillOrder', () => {
       req: await requestFor(payload, student),
     })
     await finish(order.id, await requestFor(payload, student))
-    await expect(fulfillOrder(order.id, await requestFor(payload, manager))).rejects.toMatchObject({
+    await expect(fulfillOrder(order.id, await requestFor(payload, staff))).rejects.toMatchObject({
       code: 'ORDER_INVALID_STATE',
     })
     expect(await enrollmentsOf(payload, student, course)).toHaveLength(0)
   })
 
-  it('refuses an order a manager rejected', async () => {
+  it('refuses an order a staff rejected', async () => {
     const waiting = await makeAwaitingReview(payload, student, course)
-    await rejectReceipt(waiting.id, 'blurry', await requestFor(payload, manager))
-    await expect(
-      fulfillOrder(waiting.id, await requestFor(payload, manager)),
-    ).rejects.toMatchObject({
+    await rejectReceipt(waiting.id, 'blurry', await requestFor(payload, staff))
+    await expect(fulfillOrder(waiting.id, await requestFor(payload, staff))).rejects.toMatchObject({
       code: 'ORDER_INVALID_STATE',
     })
   })
 
   it('says not found for an order that does not exist', async () => {
     await expect(
-      fulfillOrder('00000000-0000-0000-0000-000000000000', await requestFor(payload, manager)),
+      fulfillOrder('00000000-0000-0000-0000-000000000000', await requestFor(payload, staff)),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
@@ -171,7 +171,7 @@ describe('fulfillOrder', () => {
       courseId: free.id,
       req: await requestFor(payload, student),
     })
-    expect(order).toMatchObject({ status: 'paid', amount: 0, ownerAmount: 0 })
+    expect(order).toMatchObject({ status: 'paid', amount: 0, adminAmount: 0 })
     expect(await enrollmentsOf(payload, student, free)).toHaveLength(1)
     expect(emails.sent).toHaveLength(0)
   })
@@ -184,7 +184,7 @@ describe('fulfillOrder', () => {
       return original(args as never)
     }) as unknown as typeof payload.create)
 
-    await expect(fulfillOrder(waiting.id, await requestFor(payload, manager))).rejects.toThrow(
+    await expect(fulfillOrder(waiting.id, await requestFor(payload, staff))).rejects.toThrow(
       'database went away',
     )
     spy.mockRestore()
@@ -192,15 +192,14 @@ describe('fulfillOrder', () => {
     expect((await reload(payload, waiting)).status).toBe('awaiting_review') // rolled back
     expect(await enrollmentsOf(payload, student, course)).toHaveLength(0)
     // and it can still be completed afterwards
-    await expect(
-      fulfillOrder(waiting.id, await requestFor(payload, manager)),
-    ).resolves.toMatchObject({ status: 'paid' })
+    await expect(fulfillOrder(waiting.id, await requestFor(payload, staff))).resolves.toMatchObject(
+      { status: 'paid' },
+    )
   })
 
   it('does not let a receipt upload skip the price lock', async () => {
     const waiting = await makeAwaitingReview(payload, student, course)
-    expect(waiting).toMatchObject({ amount: 40000, ownerAmount: 28000 })
+    expect(waiting).toMatchObject({ amount: 40000, adminAmount: 12000 })
     expect(waiting.amountFrozenAt).toBeTruthy()
-    expect(waiting.owner).toBe(doctor.id)
   })
 })

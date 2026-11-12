@@ -6,8 +6,8 @@ import { E2E } from '../support/e2eData'
 // leaves content stuck invisible.
 
 for (const [locale, hero, stepsTitle] of [
-  ['en', 'Learn veterinary medicine from leading doctors', 'From choosing a course to watching it'],
-  ['ar', 'تعلّم الطب البيطري من أفضل الأطباء', 'من اختيار الدورة إلى مشاهدتها'],
+  ['en', 'Learn veterinary medicine with Dr. Test', 'From choosing a course to watching it'],
+  ['ar', 'تعلّم الطب البيطري مع د. تجربة', 'من اختيار الدورة إلى مشاهدتها'],
 ] as const) {
   test(`the home page in ${locale}: hero, steps, reasons, courses, call to action`, async ({
     page,
@@ -56,4 +56,19 @@ test('with reduced motion nothing is animated or hidden', async ({ browser }) =>
   await expect(
     page.getByRole('heading', { name: 'From choosing a course to watching it' }),
   ).toBeVisible()
+})
+
+test("the hero shows the doctor's photo with a name card, and live course counts", async ({
+  page,
+}) => {
+  await page.goto('/en')
+  const photo = page.getByRole('img', { name: 'Dr. Test' })
+  await expect(photo).toBeVisible()
+  await expect(photo).toHaveJSProperty('complete', true)
+  expect(await photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+  await expect(page.locator('figcaption')).toContainText('Dr. Test')
+  await expect(page.locator('figcaption')).toContainText('Test title')
+  // the seed has one published course with two lessons
+  await expect(page.getByText('courses', { exact: true }).locator('..')).toContainText('1')
+  await expect(page.getByText('video lessons', { exact: true }).locator('..')).toContainText('2')
 })

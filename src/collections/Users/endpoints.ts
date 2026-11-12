@@ -1,14 +1,13 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 
-import { isSuperadmin, roleOf, ROLES, type Role } from '@/access/roles'
+import { isSuperadmin, roleOf, type Role } from '@/access/roles'
+
+/** The roles the Admin can give. Nobody can be made Admin: there is exactly one. */
+const ASSIGNABLE_ROLES = ['admin', 'student'] as const satisfies readonly Role[]
 import { passwordMatches } from '@/lib/auth/verifyPassword'
 import { AppError } from '@/lib/errors/AppError'
 import { MIN_PASSWORD_LENGTH } from '@/lib/errors/codes'
-import {
-  applyRoleChange,
-  confirmOwnerPromotion,
-  requestOwnerPromotion,
-} from '@/lib/users/ownerPromotion'
+import { applyRoleChange } from '@/lib/users/roles'
 import type { User } from '@/payload-types'
 
 function readString(body: unknown, key: string): string | null {
@@ -46,9 +45,6 @@ async function authorizeOwnerAction(
     .findByID({ collection: 'users', id: targetId, depth: 0, overrideAccess: true, req })
     .catch(() => null)
   if (!target) throw new AppError('NOT_FOUND')
-  // The master owner cannot be changed or removed by anyone. The hooks refuse it too; this
-  // gives a clear answer before anything is attempted.
-  if (target.isMasterOwner === true) throw new AppError('MASTER_OWNER_PROTECTED')
   return { owner, target }
 }
 
@@ -87,7 +83,6 @@ export const changePasswordEndpoint: Endpoint = {
  * POST /api/users/:id/role  { role, password }
  * The only way a role changes. The owner confirms with their password, cannot change their own
  * role, and the person plus every owner is emailed. The last-owner rule still applies.
- * Making someone an owner only starts a request; see confirmOwnerEndpoint.
  */
 export const changeRoleEndpoint: Endpoint = {
   path: '/:id/role',
@@ -95,18 +90,14 @@ export const changeRoleEndpoint: Endpoint = {
   handler: async (req) => {
     const body = await readBody(req)
     const role = readString(body, 'role')
-    if (!role || !(ROLES as readonly string[]).includes(role)) {
+    if (!role || !(ASSIGNABLE_ROLES as readonly string[]).includes(role)) {
       throw new AppError('VALIDATION_FAILED')
     }
     const { owner, target } = await authorizeOwnerAction(req, body)
+    // There is exactly one Admin: that account's role never changes here.
+    if (roleOf(target) === 'superadmin') throw new AppError('FORBIDDEN')
     const to = role as Role
     if ((roleOf(target) ?? 'student') === to) return Response.json({ id: target.id, role: to })
-
-    // Making someone an owner needs a second step: a link emailed to the requesting owner.
-    if (to === 'superadmin') {
-      await requestOwnerPromotion(target, owner, req)
-      return Response.json({ id: target.id, pending: true })
-    }
 
     await applyRoleChange(target, to, owner, req)
     return Response.json({ id: target.id, role: to })
@@ -123,22 +114,9 @@ export const deleteUserEndpoint: Endpoint = {
   handler: async (req) => {
     const body = await readBody(req)
     const { target } = await authorizeOwnerAction(req, body)
+    // The Admin account is never removed through the app.
+    if (roleOf(target) === 'superadmin') throw new AppError('FORBIDDEN')
     await req.payload.delete({ collection: 'users', id: target.id, overrideAccess: true, req })
     return Response.json({ id: target.id })
-  },
-}
-
-/**
- * POST /api/users/confirm-owner  { token }
- * Step 2 of making someone an owner, sent by the Confirm button on the page the email links to.
- */
-export const confirmOwnerEndpoint: Endpoint = {
-  path: '/confirm-owner',
-  method: 'post',
-  handler: async (req) => {
-    const token = readString(await readBody(req), 'token')
-    if (!token) throw new AppError('INVALID_TOKEN')
-    const target = await confirmOwnerPromotion(token, req)
-    return Response.json({ id: target.id, role: 'superadmin' })
   },
 }

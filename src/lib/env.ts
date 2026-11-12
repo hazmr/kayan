@@ -29,6 +29,25 @@ export const env = {
   payloadSecret: required('PAYLOAD_SECRET'),
   siteUrl: required('NEXT_PUBLIC_SITE_URL').replace(/\/+$/, ''),
   isProduction: process.env.NODE_ENV === 'production',
+  // The name people see (header, page titles, emails), per language. The project itself is
+  // called kayan; each academy that runs it sets its own name here.
+  siteName: {
+    ar: optional('SITE_NAME_AR') ?? optional('SITE_NAME_EN') ?? 'Kayan',
+    en: optional('SITE_NAME_EN') ?? optional('SITE_NAME_AR') ?? 'Kayan',
+  },
+  // The doctor the academy is built around, named on the home page. Defaults to the site name.
+  instructorName: {
+    ar: optional('INSTRUCTOR_NAME_AR') ?? optional('SITE_NAME_AR') ?? 'Kayan',
+    en: optional('INSTRUCTOR_NAME_EN') ?? optional('SITE_NAME_EN') ?? 'Kayan',
+  },
+  // A short line under the doctor's name on the home page, for example "Veterinarian".
+  instructorTitle: {
+    ar: optional('INSTRUCTOR_TITLE_AR') ?? optional('INSTRUCTOR_TITLE_EN'),
+    en: optional('INSTRUCTOR_TITLE_EN') ?? optional('INSTRUCTOR_TITLE_AR'),
+  },
+  // The doctor's photo for the home page, a path inside /public (for example /academy/hassan-helal-portrait.webp).
+  // Without it, the home page shows a generic illustration.
+  instructorPhoto: optional('INSTRUCTOR_PHOTO'),
   // Where uploaded files are kept on disk (development and tests). Default: the project folder.
   // Production moves to object storage (Cloudflare R2), where this is not used.
   uploadsDir: optional('UPLOADS_DIR') ?? '.',

@@ -60,7 +60,7 @@ export async function submitReceipt({
     assertTransition(current.status, 'awaiting_review')
     if (!current.method) throw new AppError('PAYMENT_METHOD_UNAVAILABLE')
 
-    let frozen: ReturnType<typeof freezeAmounts> | undefined
+    let frozen: Awaited<ReturnType<typeof freezeAmounts>> | undefined
     if (current.status === 'pending') {
       const course = await loadCourse(
         typeof current.course === 'string' ? current.course : current.course.id,
@@ -72,7 +72,7 @@ export async function submitReceipt({
       if (course.price === 0 || course.price !== expectedAmount) {
         throw new AppError('ORDER_PRICE_CHANGED')
       }
-      frozen = freezeAmounts(course, new Date())
+      frozen = await freezeAmounts(course, req, new Date())
     }
 
     try {

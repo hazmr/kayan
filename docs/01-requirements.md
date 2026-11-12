@@ -58,6 +58,13 @@ I filled these gaps myself. Tell me which ones are wrong.
 | A15 | A user who owns courses or has orders cannot be hard-deleted. Details go to Phase 2. |
 | A16 | A payment method is offered to students only if its address or number is filled in payment settings. |
 
+> **Update after Phase 4 (refactors R1 and R2).** This document describes the original marketplace.
+> The product is now **one academy**: three roles (Admin, Instructor, Student), no course review
+> step, and one money rule (the Admin earns a set percent of each sale, paid by the academy and
+> recorded as payments to the Admin). The marketplace stories below about doctor shares, payouts to
+> doctors, managers, and owner promotion are superseded; see the "Refactor R1" and "Refactor R2"
+> sections of [02-design.md](02-design.md).
+
 ## 3. User stories
 
 Each story has an ID so later phases and tests can point back to it. Error codes shown here are examples; the final list is fixed in Phase 2.

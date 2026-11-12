@@ -170,7 +170,7 @@ Changes from the spec are marked **new** or **changed**. All IDs are UUIDs. Why:
 | provider | select: manual, paymob | **changed**: empty for free orders. |
 | method | select: instapay, vodafone_cash | Empty for free orders. Changeable while `pending`. |
 | status | select: pending, awaiting_review, paid, rejected, refunded, cancelled | **changed**: `cancelled` added (D4). |
-| reference | text, unique | Short code the student writes in the transfer note, such as `VT-7K3M9Q`. |
+| reference | text, unique | Short code the student writes in the transfer note, such as `KY-7K3M9Q`. |
 | providerRef | text, optional | For Paymob later. |
 | paidAt | date | **new**: set by `fulfillOrder`. |
 | refundStatus | select: none, requested, declined | **new** (D2). The order stays `paid` during a request. |
@@ -521,7 +521,7 @@ Emails are sent after the database transaction commits. A failed email is logged
 ## 11. Folder structure
 
 ```
-vetudy/
+kayan/
 ├─ docs/                          the phase documents
 ├─ messages/
 │  ├─ ar.json                     site text and error-code text, Arabic
@@ -756,6 +756,40 @@ Raised by the owner: a doctor saw the site like a student (and could "buy" their
 | The header has three parts: logo, centred links (Courses; My courses for students; Dashboard for doctors and staff), and the account on the other side. On a phone the links drop to a second row. "My courses" and "Dashboard" were removed from the account menu so no link appears twice. | Asked for by the owner. |
 | The home page is three sections: hero, how it works with the second picture, and the newest courses. Each button appears once (the header's Log in, Sign up, Courses, and Dashboard are not repeated in the page). | Simplified at the owner's request. |
 | `pnpm demo:seed` adds one big free demo course (6 modules, 36 lessons) to a development database. | To try the player, the progress tracker, and the lesson list with real amounts. |
+
+### Refactor R1: one academy, three roles
+
+The project is one doctor's academy, not a marketplace. Decided with the owner after Phase 4.
+
+| Change | Why |
+|--------|-----|
+| Three roles: **Admin** (key `superadmin`, exactly one), **Instructor** (key `admin`), **Student**. The `manager` role is gone: existing managers became instructors in migration `one_academy_roles`. Role keys stay as they were so no other data moves; only labels changed. | The doctor and his son do the same kind of work on the same business. "Instructor" is generic enough to sell the product to another academy later. |
+| Instructors are staff: they read and edit every course (not only the ones they teach), review receipts and refunds, see every order, and manage categories. Only the Admin manages users, settings, payouts, the share percent, and deletes courses. | One academy: there is no one to hide courses or sales from. |
+| No review step: courses go draft -> published -> archived -> published. Publishing a draft needs a category, a thumbnail, and a lesson. Courses that were in review went back to draft; the review note was dropped. | A review gate only makes sense when a platform checks outside teachers. |
+| Exactly one Admin. Nobody can be made Admin through the app (the role endpoint only gives instructor or student), and the Admin account's role and existence are never changed through the app, even if a second Admin existed. `superadmin:create` refuses when an Admin exists. The owner-promotion flow (collection, emails, confirm page) and the master-owner flag were removed. | With one Admin who cannot be demoted, deleted, or edited by anyone else, both features had nothing left to protect. |
+| Still the old money model (doctor share per course, payouts from the Admin to instructors, the Admin-only revenue split). R2 replaces it. | One step at a time. |
+
+### Refactor R2: the academy's money
+
+| Change | Why |
+|--------|-----|
+| One setting, `platform-settings.adminSharePercent` (Admin writes, instructors read, default 0). Each order freezes `adminAmount` = price x percent / 100 rounded down when the student commits (receipt upload or free enrollment); the academy keeps the rest and any leftover piaster. | The family holds the money and owes the Admin a share. Freezing per order means a new percent never rewrites past sales. |
+| Removed: the per-course doctor share, `orders.owner` / `orders.ownerAmount`, payouts to doctors, every per-doctor earnings view, the doctor sales view. Migration `academy_money` sets existing orders' Admin share to 0, because no percent had been agreed when they were sold. | One academy: no split between doctors. |
+| New collection `admin-payments` (amount, paidAt, recordedBy, note): the academy's payments to the Admin. The Admin or any instructor records one (`POST /api/admin-payments/record`); only the Admin removes one, with their password. Everyone who runs the academy is emailed either way. | Either side may be the one who sent or received the transfer; removing a money record must stay deliberate. |
+| One revenue picture for the Admin and every instructor (`getAcademyRevenue`; pure rules in `src/lib/earnings/revenue.ts`): paid by students = academy share + Admin's share; Admin's share = paid to the Admin + still owed. By month (Cairo time) and by course. Refunds leave the totals and are shown on their own line. | Family members should see the same numbers. |
+| Payment details are editable by instructors too (it is the academy's account), and every change is emailed to the Admin and all instructors. | Nobody, the Admin included, can quietly redirect students' money. |
+
+### Rename: the project is kayan, the academy name is a setting
+
+The code, repository, package, database, containers and test databases are called **kayan**. What visitors see (header, dashboard, page titles, emails) comes from `SITE_NAME_AR` / `SITE_NAME_EN` in `.env` (`src/lib/site.ts`), defaulting to "Kayan". The tests read the Postgres server from `DATABASE_URL` in `.env` and use a fixed test academy name.
+
+### The Admin is id zero; a seed with real content
+
+| Change | Why |
+|--------|-----|
+| The Admin is always the all-zero UUID ("id zero"). A database CHECK constraint (`users_admin_is_id_zero`, migration `admin_is_id_zero`) allows the superadmin role only on that id, so the database itself guarantees exactly one Admin. `createAdmin` (used by `superadmin:create`, the seed, and the tests) creates the account as a student, then sets id zero and the role in one statement. | The owner asked for "id 0". Ids are UUIDs, so zero is the all-zero UUID; enforcing it in the database means no code path can make a second Admin. |
+| `pnpm seed` fills an empty database: the Admin, the instructor, 13 courses from Dr. Hassan Helal's teaching playlists (`src/scripts/seed-data/hassanHelalPlaylists.ts`; event, greeting, TV-program and activism videos, duplicates and bonus clips left out; YouTube thumbnails when reachable), 5 students in different situations made through the real order functions, and test payment details. | To try every screen with realistic data. |
+| Wording: the role is called Instructor everywhere it was still Doctor or Manager; students' My orders shows when a refund request is pending; the dashboard sidebar puts the role under the academy name. | Found while going through the seeded site as each role. |
 
 ## 15. Phase 4: testing
 

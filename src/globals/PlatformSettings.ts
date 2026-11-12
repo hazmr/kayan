@@ -1,33 +1,33 @@
 import type { GlobalConfig } from 'payload'
 
-import { isSuperadmin } from '@/access/roles'
+import { isStaff, isSuperadmin } from '@/access/roles'
 import { label } from '@/collections/shared/labels'
 
-export const DEFAULT_OWNER_SHARE_PERCENT = 70
+/** The Admin's share starts at 0% until the agreed number is entered. */
+export const DEFAULT_ADMIN_SHARE_PERCENT = 0
 
+/**
+ * The academy's money rule: the Admin earns this percent of every paid sale; the academy keeps
+ * the rest. Instructors can read it (they pay it); only the Admin can change it, and a change
+ * applies to sales from then on (each order freezes its own share when the student pays).
+ */
 export const PlatformSettings: GlobalConfig = {
   slug: 'platform-settings',
   label: label('Platform settings', 'إعدادات المنصة'),
   access: {
-    read: ({ req: { user } }) => isSuperadmin(user),
+    read: ({ req: { user } }) => isStaff(user),
     update: ({ req: { user } }) => isSuperadmin(user),
   },
   fields: [
     {
-      name: 'defaultOwnerSharePercent',
+      name: 'adminSharePercent',
       type: 'number',
-      label: label('Default doctor share (%)', 'نسبة الطبيب الافتراضية (%)'),
+      label: label("Admin's share of each sale (%)", 'نسبة مسؤول النظام من كل عملية بيع (%)'),
       required: true,
-      defaultValue: DEFAULT_OWNER_SHARE_PERCENT,
+      defaultValue: DEFAULT_ADMIN_SHARE_PERCENT,
       min: 0,
       max: 100,
-      admin: {
-        step: 1,
-        description: label(
-          'Copied onto each new course. Changing it does not affect existing courses.',
-          'تُنسخ إلى كل دورة جديدة. تغييرها لا يؤثر على الدورات الموجودة.',
-        ),
-      },
+      admin: { step: 1 },
       validate: (value: unknown) =>
         (typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100) ||
         'Enter a whole number from 0 to 100.',

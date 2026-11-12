@@ -5,7 +5,6 @@ import type {
 } from 'payload'
 
 import { isStaff, roleOf } from '@/access/roles'
-import { DEFAULT_OWNER_SHARE_PERCENT } from '@/globals/PlatformSettings'
 import { AppError } from '@/lib/errors/AppError'
 import type { Course } from '@/payload-types'
 
@@ -19,8 +18,8 @@ export const fillSlug: CollectionBeforeValidateHook<Course> = ({ data, originalD
 }
 
 /**
- * New courses always start as a draft owned by their creator, with the platform's default share.
- * This runs before validation, so the required `owner` field is filled in for doctors.
+ * New courses always start as a draft. An instructor who creates a course teaches it; the
+ * Admin picks the instructor. This runs before validation, so the required `owner` is filled in.
  */
 export const setCreationDefaults: CollectionBeforeValidateHook<Course> = async ({
   data,
@@ -30,25 +29,15 @@ export const setCreationDefaults: CollectionBeforeValidateHook<Course> = async (
   if (!data || operation !== 'create') return data
 
   data.status = 'draft'
-  data.reviewNote = null
 
   // Only staff may create a course for someone else. Everyone else owns what they create.
   if (req.user && !(isStaff(req.user) && data.owner)) {
     data.owner = req.user.id
   }
-
-  if (data.ownerSharePercent === undefined || data.ownerSharePercent === null) {
-    const settings = await req.payload.findGlobal({
-      slug: 'platform-settings',
-      overrideAccess: true,
-      req,
-    })
-    data.ownerSharePercent = settings.defaultOwnerSharePercent ?? DEFAULT_OWNER_SHARE_PERCENT
-  }
   return data
 }
 
-/** Earnings go to the owner, so the owner must be a doctor account. */
+/** The person shown as teaching the course must be an instructor account. */
 export const requireDoctorOwner: CollectionBeforeChangeHook<Course> = async ({
   data,
   originalDoc,

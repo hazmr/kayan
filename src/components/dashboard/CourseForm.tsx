@@ -63,16 +63,11 @@ export function CourseForm({ course, categories, doctors, mustPickDoctor }: Cour
   const [price, setPrice] = useState(String(course?.priceEgp ?? 0))
   const [thumbnail, setThumbnail] = useState(course?.thumbnail ?? null)
   const [ownerId, setOwnerId] = useState(course?.owner.id ?? '')
-  const [share, setShare] = useState(
-    course?.ownerSharePercent === null || course?.ownerSharePercent === undefined
-      ? ''
-      : String(course.ownerSharePercent),
-  )
   const [saved, setSaved] = useState(false)
   const [confirmOwner, setConfirmOwner] = useState(false)
 
   const canEditPrice = course ? course.can.editPrice : true
-  const canEditOwnerAndShare = course ? course.can.editOwnerAndShare : false
+  const canEditOwner = course ? course.can.editOwner : false
   const mainCategories = categories.filter((category) => category.parentId === null)
   const subcategories = categories.filter(
     (category) => mainId !== '' && category.parentId === mainId,
@@ -85,7 +80,7 @@ export function CourseForm({ course, categories, doctors, mustPickDoctor }: Cour
     if (result.ok) setThumbnail(uploadedImage(result.data))
   }
 
-  const ownerChanged = Boolean(course && canEditOwnerAndShare && ownerId !== course.owner.id)
+  const ownerChanged = Boolean(course && canEditOwner && ownerId !== course.owner.id)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -110,9 +105,8 @@ export function CourseForm({ course, categories, doctors, mustPickDoctor }: Cour
     // Only send what this person may change. The server ignores or refuses the rest anyway.
     if (canEditPrice) body.price = egpToPiasters(Math.max(0, Math.trunc(Number(price) || 0)))
     if (!course && mustPickDoctor) body.owner = ownerId
-    if (course && canEditOwnerAndShare) {
+    if (course && canEditOwner) {
       body.owner = ownerId
-      if (share !== '') body.ownerSharePercent = Math.trunc(Number(share))
     }
 
     if (!course) {
@@ -138,8 +132,8 @@ export function CourseForm({ course, categories, doctors, mustPickDoctor }: Cour
         </Alert>
       )}
 
-      {/* Staff decide whose course this is before anything else. */}
-      {((!course && mustPickDoctor) || (course && canEditOwnerAndShare)) && (
+      {/* The Admin decides which instructor teaches the course before anything else. */}
+      {((!course && mustPickDoctor) || (course && canEditOwner)) && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <Label htmlFor="course-owner">{t('course.doctor')}</Label>
@@ -158,27 +152,6 @@ export function CourseForm({ course, categories, doctors, mustPickDoctor }: Cour
               ))}
             </select>
           </div>
-
-          {course && canEditOwnerAndShare && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="course-share">{t('course.share')}</Label>
-              <Input
-                id="course-share"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={100}
-                step={1}
-                value={share}
-                onChange={(event) => setShare(event.target.value)}
-                aria-describedby="course-share-help"
-                dir="ltr"
-              />
-              <p id="course-share-help" className="text-xs text-muted-foreground">
-                {t('course.shareHelp')}
-              </p>
-            </div>
-          )}
         </div>
       )}
 

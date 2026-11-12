@@ -23,7 +23,7 @@ const IDS = { preview: 'PREVIEWvid01', second: 'SECRETvid002', third: 'SECRETvid
 
 let payload: Payload
 let owner: User
-let manager: User
+let staff: User
 let doctor: User
 let otherDoctor: User
 let enrolled: User
@@ -80,16 +80,16 @@ beforeAll(async () => {
   payload = await startApp()
   await setPaymentSettings(payload)
   owner = await makeUser(payload, 'superadmin')
-  manager = await makeUser(payload, 'manager')
+  staff = await makeUser(payload, 'admin', 'staff')
   doctor = await makeUser(payload, 'admin')
   otherDoctor = await makeUser(payload, 'admin')
   enrolled = await makeUser(payload, 'student')
   refunded = await makeUser(payload, 'student')
   stranger = await makeUser(payload, 'student')
   ;({ course, lessons } = await build())
-  await makePaidOrder(payload, enrolled, course, manager)
-  const gone = await makePaidOrder(payload, refunded, course, manager)
-  await refundOrder(gone.id, await requestFor(payload, manager))
+  await makePaidOrder(payload, enrolled, course, staff)
+  const gone = await makePaidOrder(payload, refunded, course, staff)
+  await refundOrder(gone.id, await requestFor(payload, staff))
 })
 afterAll(() => stopApp(payload))
 
@@ -102,8 +102,8 @@ describe('who can watch which lesson', () => {
     }
   })
 
-  it('locks the other lessons for a guest, a student without the course, a refunded student, and another doctor', async () => {
-    for (const user of [null, stranger, refunded, otherDoctor]) {
+  it('locks the other lessons for a guest, a student without the course, and a refunded student', async () => {
+    for (const user of [null, stranger, refunded]) {
       for (const lesson of [lessons.second, lessons.third]) {
         const result = await page(course, lesson, user)
         expect(result.kind, user?.email ?? 'guest').toBe('locked')
@@ -111,8 +111,8 @@ describe('who can watch which lesson', () => {
     }
   })
 
-  it("opens every lesson for the enrolled student, the course's doctor, a manager, and the owner", async () => {
-    for (const user of [enrolled, doctor, manager, owner]) {
+  it('opens every lesson for the enrolled student, every instructor (not only the one who teaches it), and the Admin', async () => {
+    for (const user of [enrolled, doctor, otherDoctor, staff, owner]) {
       for (const [key, lesson] of Object.entries(lessons)) {
         const result = await page(course, lesson, user)
         expect(result.kind, `${user.role} ${key}`).toBe('ok')
@@ -130,11 +130,11 @@ describe('who can watch which lesson', () => {
 
   it('takes access away at once when the student is refunded, and gives it back on a new purchase', async () => {
     const buyer = await makeUser(payload, 'student')
-    const order = await makePaidOrder(payload, buyer, course, manager)
+    const order = await makePaidOrder(payload, buyer, course, staff)
     expect((await page(course, lessons.second, buyer)).kind).toBe('ok')
-    await refundOrder(order.id, await requestFor(payload, manager))
+    await refundOrder(order.id, await requestFor(payload, staff))
     expect((await page(course, lessons.second, buyer)).kind).toBe('locked')
-    await makePaidOrder(payload, buyer, course, manager)
+    await makePaidOrder(payload, buyer, course, staff)
     expect((await page(course, lessons.second, buyer)).kind).toBe('ok')
   })
 
@@ -142,13 +142,14 @@ describe('who can watch which lesson', () => {
     expect(await canWatchLesson(lessons.preview, course, null, payload)).toBe(true)
     expect(await canWatchLesson(lessons.second, course, null, payload)).toBe(false)
     expect(await canWatchLesson(lessons.second, course, enrolled, payload)).toBe(true)
-    expect(await canWatchLesson(lessons.second, course, otherDoctor, payload)).toBe(false)
+    expect(await canWatchLesson(lessons.second, course, stranger, payload)).toBe(false)
+    expect(await canWatchLesson(lessons.second, course, otherDoctor, payload)).toBe(true)
   })
 })
 
 describe('the video is never exposed to someone who may not watch', () => {
   it("a locked page carries no video id at all, not even another lesson's", async () => {
-    for (const user of [null, stranger, refunded, otherDoctor]) {
+    for (const user of [null, stranger, refunded]) {
       const result = await page(course, lessons.second, user)
       expect(videoIdsIn(result), user?.email ?? 'guest').toEqual([])
     }
@@ -159,7 +160,7 @@ describe('the video is never exposed to someone who may not watch', () => {
     expect(videoIdsIn(result)).toEqual([IDS.second])
   })
 
-  it("the lesson API hides the video id and provider from everyone but staff and the course's doctor", async () => {
+  it('the lesson API hides the video id and provider from everyone but the Admin and instructors', async () => {
     const read = async (user: User | null) => {
       const { docs } = await payload.find({
         collection: 'lessons',
@@ -170,7 +171,7 @@ describe('the video is never exposed to someone who may not watch', () => {
       })
       return docs
     }
-    for (const user of [null, stranger, enrolled, refunded, otherDoctor]) {
+    for (const user of [null, stranger, enrolled, refunded]) {
       const docs = await read(user)
       expect(docs.length, user?.email ?? 'guest').toBe(3) // they can see the outline...
       for (const doc of docs) {
@@ -178,7 +179,7 @@ describe('the video is never exposed to someone who may not watch', () => {
         expect(doc).not.toHaveProperty('videoProvider')
       }
     }
-    for (const user of [doctor, manager, owner]) {
+    for (const user of [doctor, otherDoctor, staff, owner]) {
       const docs = await read(user)
       expect(docs.map((doc) => doc.videoId).sort()).toEqual(Object.values(IDS).sort())
     }
@@ -199,7 +200,7 @@ describe('the video is never exposed to someone who may not watch', () => {
 describe('courses that are not public', () => {
   it('a draft course does not exist for a guest or a student, even for its free preview', async () => {
     const draft = await build('draft')
-    for (const user of [null, stranger, otherDoctor]) {
+    for (const user of [null, stranger]) {
       expect(
         (await page(draft.course, draft.lessons.preview, user)).kind,
         user?.email ?? 'guest',
@@ -207,9 +208,9 @@ describe('courses that are not public', () => {
     }
   })
 
-  it('...but its own doctor and staff can preview it', async () => {
-    const draft = await build('in_review')
-    for (const user of [doctor, manager, owner]) {
+  it('...but the Admin and every instructor can preview it', async () => {
+    const draft = await build('draft')
+    for (const user of [doctor, otherDoctor, staff, owner]) {
       expect((await page(draft.course, draft.lessons.second, user)).kind, user.role).toBe('ok')
     }
   })
@@ -217,15 +218,15 @@ describe('courses that are not public', () => {
   it('an archived course keeps its students, and disappears for everyone else', async () => {
     const live = await build('published')
     const buyer = await makeUser(payload, 'student')
-    await makePaidOrder(payload, buyer, live.course, manager)
+    await makePaidOrder(payload, buyer, live.course, staff)
     const left = await makeUser(payload, 'student')
-    const leftOrder = await makePaidOrder(payload, left, live.course, manager)
-    await refundOrder(leftOrder.id, await requestFor(payload, manager))
+    const leftOrder = await makePaidOrder(payload, left, live.course, staff)
+    await refundOrder(leftOrder.id, await requestFor(payload, staff))
 
     await changeCourseStatus({
       courseId: live.course.id,
       to: 'archived',
-      req: await requestFor(payload, manager),
+      req: await requestFor(payload, staff),
     })
 
     expect((await page(live.course, live.lessons.second, buyer)).kind).toBe('ok')

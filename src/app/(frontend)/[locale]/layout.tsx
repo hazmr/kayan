@@ -8,6 +8,7 @@ import type { ReactNode } from 'react'
 import { DirectionProvider } from '@/components/site/DirectionProvider'
 import { directionOf } from '@/i18n/locales'
 import { routing } from '@/i18n/routing'
+import { siteName } from '@/lib/site'
 
 import '../globals.css'
 
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
   const { locale } = await params
   if (!hasLocale(routing.locales, locale)) return {}
   const t = await getTranslations({ locale, namespace: 'meta' })
-  return { title: t('title'), description: t('description') }
+  return { title: `${siteName(locale)} | ${t('title')}`, description: t('description') }
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {

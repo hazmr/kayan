@@ -38,17 +38,16 @@ export interface CourseEdit {
   title: Localized
   description: Localized
   status: CourseStatus
-  reviewNote: string
   categoryId: string
   thumbnail: { id: string; url: string } | null
   priceEgp: number
   owner: { id: string; name: string }
-  ownerSharePercent: number | null
   modules: ModuleEdit[]
   /** What the person looking at the page may do. Decided on the server, checked again by the API. */
   can: {
     editPrice: boolean
-    editOwnerAndShare: boolean
+    /** Only the Admin changes which instructor teaches a course. */
+    editOwner: boolean
     moveTo: CourseStatus[]
   }
 }
@@ -66,8 +65,6 @@ export interface UserRow {
   email: string
   role: Role
   verified: boolean
-  /** The master owner: nobody can change or remove this account from the app. */
-  master: boolean
 }
 
 export interface PersonOption {

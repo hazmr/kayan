@@ -11,8 +11,9 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   images: {
-    // Course thumbnails are served by Payload from this path.
-    localPatterns: [{ pathname: '/api/media/file/**' }],
+    // Course thumbnails are served by Payload from the first path; the academy's own pictures
+    // (the doctor's photo on the home page) live in /public/academy.
+    localPatterns: [{ pathname: '/api/media/file/**' }, { pathname: '/academy/**' }],
   },
   // Payload's packages import files with a .js extension that are really .ts files.
   webpack: (webpackConfig) => {

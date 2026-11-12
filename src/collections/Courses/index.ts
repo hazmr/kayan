@@ -1,12 +1,11 @@
 import type { CollectionConfig, FieldAccess } from 'payload'
 
 import { editCourseContent, readCourseContent } from '@/access/courses'
-import { hasRole, isStaff, isSuperadmin } from '@/access/roles'
+import { isStaff, isSuperadmin } from '@/access/roles'
 import { COURSE_STATUSES } from '@/lib/courses/transitions'
 import type { Course } from '@/payload-types'
 
 import { collectionLabels, label } from '../shared/labels'
-import { relationId } from '../shared/relationId'
 import { requireArabic } from '../shared/requireArabic'
 import { slugField } from '../shared/slug'
 import { courseEndpoints } from './endpoints'
@@ -22,23 +21,10 @@ const superadminField: FieldAccess = ({ req: { user } }) => isSuperadmin(user)
 
 const staffField: FieldAccess = ({ req: { user } }) => isStaff(user)
 
-/** Business details (share percent, review note) are for staff and the course's own doctor. */
-const staffOrOwnerField: FieldAccess<Course> = ({ req: { user }, doc }) =>
-  isStaff(user) || (Boolean(user) && relationId(doc?.owner) === user?.id)
-
-/** The share percent is a deal between the owner and the doctor: managers do not see it. */
-const superadminOrOwnerField: FieldAccess<Course> = ({ req: { user }, doc }) =>
-  isSuperadmin(user) || (Boolean(user) && relationId(doc?.owner) === user?.id)
-
-/** A doctor sets the price only while the course is a draft. Staff can change it any time. */
-const priceUpdate: FieldAccess<Course> = ({ req: { user }, doc }) =>
-  isStaff(user) || doc?.status === 'draft'
-
 const never: FieldAccess = () => false
 
 const STATUS_LABELS: Record<Course['status'], { en: string; ar: string }> = {
   draft: label('Draft', 'مسودة'),
-  in_review: label('In review', 'قيد المراجعة'),
   published: label('Published', 'منشورة'),
   archived: label('Archived', 'مؤرشفة'),
 }
@@ -53,8 +39,8 @@ export const Courses: CollectionConfig = {
   },
   access: {
     read: readCourseContent(''),
-    // Staff create a course on behalf of a doctor and must pick that doctor as the owner.
-    create: ({ req: { user } }) => hasRole(user, 'superadmin', 'manager', 'admin'),
+    // The Admin and instructors create courses. The Admin must pick the instructor who teaches it.
+    create: ({ req: { user } }) => isStaff(user),
     update: editCourseContent(''),
     delete: ({ req: { user } }) => isSuperadmin(user),
   },
@@ -104,7 +90,7 @@ export const Courses: CollectionConfig = {
       required: true,
       defaultValue: 0,
       min: 0,
-      access: { update: priceUpdate },
+      access: { update: staffField },
       validate: (value: unknown) =>
         (typeof value === 'number' && Number.isInteger(value) && value >= 0) ||
         'Enter a whole number, 0 or more.',
@@ -125,20 +111,9 @@ export const Courses: CollectionConfig = {
       defaultValue: 'draft',
       index: true,
       options: COURSE_STATUSES.map((status) => ({ label: STATUS_LABELS[status], value: status })),
-      // Nobody edits this by hand. The buttons call endpoints that run the review rules.
+      // Nobody edits this by hand. The buttons call endpoints that run the status rules.
       access: { create: never, update: never },
       admin: { position: 'sidebar', readOnly: true },
-    },
-    {
-      name: 'reviewNote',
-      type: 'textarea',
-      label: label('Review note', 'ملاحظة المراجعة'),
-      access: { read: staffOrOwnerField, create: never, update: never },
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-        condition: (data) => Boolean(data?.reviewNote),
-      },
     },
     {
       name: 'owner',
@@ -152,20 +127,6 @@ export const Courses: CollectionConfig = {
       // themselves. After creation only the superadmin can move a course to another doctor.
       access: { create: staffField, update: superadminField },
       admin: { position: 'sidebar' },
-    },
-    {
-      name: 'ownerSharePercent',
-      type: 'number',
-      label: label('Doctor share (%)', 'نسبة الطبيب (%)'),
-      min: 0,
-      max: 100,
-      access: { read: superadminOrOwnerField, create: superadminField, update: superadminField },
-      admin: { position: 'sidebar', step: 1 },
-      validate: (value: unknown) =>
-        value === undefined ||
-        value === null ||
-        (typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100) ||
-        'Enter a whole number from 0 to 100.',
     },
     slugField,
   ],

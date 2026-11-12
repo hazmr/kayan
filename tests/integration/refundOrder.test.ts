@@ -27,7 +27,7 @@ import { emails, startApp, stopApp } from '../support/payload'
 
 let payload: Payload
 let doctor: User
-let manager: User
+let staff: User
 let owner: User
 let student: User
 let course: Course
@@ -37,7 +37,7 @@ beforeAll(async () => {
   payload = await startApp()
   await setPaymentSettings(payload)
   doctor = await makeUser(payload, 'admin')
-  manager = await makeUser(payload, 'manager')
+  staff = await makeUser(payload, 'admin', 'staff')
   owner = await makeUser(payload, 'superadmin')
   course = await makeCourse(payload, doctor, { price: 40000 })
   await makeLesson(payload, course)
@@ -45,7 +45,7 @@ beforeAll(async () => {
 afterAll(() => stopApp(payload))
 beforeEach(async () => {
   student = await makeUser(payload, 'student')
-  paid = await makePaidOrder(payload, student, course, manager)
+  paid = await makePaidOrder(payload, student, course, staff)
   emails.reset()
 })
 
@@ -53,17 +53,17 @@ describe('refundOrder (called only AFTER the money was sent back)', () => {
   it("marks the order refunded, records who did it, and removes the student's access", async () => {
     expect(await hasFullCourseAccess(student, course, payload)).toBe(true)
 
-    const refunded = await refundOrder(paid.id, await requestFor(payload, manager))
+    const refunded = await refundOrder(paid.id, await requestFor(payload, staff))
 
     expect(refunded.status).toBe('refunded')
     expect(refunded.refundedAt).toBeTruthy()
-    expect(refunded.refundedBy).toBe(manager.id)
+    expect(refunded.refundedBy).toBe(staff.id)
     expect((await enrollmentsOf(payload, student, course))[0]?.status).toBe('revoked')
     expect(await hasFullCourseAccess(student, course, payload)).toBe(false)
   })
 
   it('emails the student exactly once', async () => {
-    await refundOrder(paid.id, await requestFor(payload, manager))
+    await refundOrder(paid.id, await requestFor(payload, staff))
     expect(emails.to(student.email)).toHaveLength(1)
     expect(emails.to(student.email)[0]?.subject).toContain('Refund sent')
   })
@@ -75,20 +75,18 @@ describe('refundOrder (called only AFTER the money was sent back)', () => {
   })
 
   it('is idempotent: a second call changes nothing and sends nothing', async () => {
-    const first = await refundOrder(paid.id, await requestFor(payload, manager))
+    const first = await refundOrder(paid.id, await requestFor(payload, staff))
     emails.reset()
     const second = await refundOrder(paid.id, await requestFor(payload, owner))
     expect(second.status).toBe('refunded')
     expect(second.refundedAt).toBe(first.refundedAt)
-    expect(second.refundedBy).toBe(manager.id) // still the first person
+    expect(second.refundedBy).toBe(staff.id) // still the first person
     expect(emails.sent).toHaveLength(0)
   })
 
   it('survives many callers at the same instant: refunded once, one email', async () => {
     const results = await Promise.all(
-      Array.from({ length: 5 }, async () =>
-        refundOrder(paid.id, await requestFor(payload, manager)),
-      ),
+      Array.from({ length: 5 }, async () => refundOrder(paid.id, await requestFor(payload, staff))),
     )
     expect(results.every((order) => order.status === 'refunded')).toBe(true)
     expect(emails.to(student.email)).toHaveLength(1)
@@ -96,20 +94,17 @@ describe('refundOrder (called only AFTER the money was sent back)', () => {
   })
 
   it('lets the student buy again afterwards and reactivates the same enrollment', async () => {
-    await refundOrder(paid.id, await requestFor(payload, manager))
+    await refundOrder(paid.id, await requestFor(payload, staff))
     const [before] = await enrollmentsOf(payload, student, course)
     const again = await makeAwaitingReview(payload, student, course)
-    await fulfillOrder(again.id, await requestFor(payload, manager))
+    await fulfillOrder(again.id, await requestFor(payload, staff))
     const enrollments = await enrollmentsOf(payload, student, course)
     expect(enrollments).toHaveLength(1)
     expect(enrollments[0]).toMatchObject({ id: before!.id, status: 'active' })
   })
 
-  it('refuses a student, a doctor, and a guest', async () => {
+  it('refuses a student and a guest', async () => {
     await expect(refundOrder(paid.id, await requestFor(payload, student))).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-    })
-    await expect(refundOrder(paid.id, await requestFor(payload, doctor))).rejects.toMatchObject({
       code: 'FORBIDDEN',
     })
     await expect(refundOrder(paid.id, await requestFor(payload, null))).rejects.toMatchObject({
@@ -121,11 +116,9 @@ describe('refundOrder (called only AFTER the money was sent back)', () => {
   it('refuses an order that is not paid', async () => {
     const other = await makeUser(payload, 'student')
     const waiting = await makeAwaitingReview(payload, other, course)
-    await expect(refundOrder(waiting.id, await requestFor(payload, manager))).rejects.toMatchObject(
-      {
-        code: 'ORDER_INVALID_STATE',
-      },
-    )
+    await expect(refundOrder(waiting.id, await requestFor(payload, staff))).rejects.toMatchObject({
+      code: 'ORDER_INVALID_STATE',
+    })
   })
 
   it('refuses a free order: there is nothing to give back', async () => {
@@ -134,7 +127,7 @@ describe('refundOrder (called only AFTER the money was sent back)', () => {
       courseId: free.id,
       req: await requestFor(payload, student),
     })
-    await expect(refundOrder(order.id, await requestFor(payload, manager))).rejects.toMatchObject({
+    await expect(refundOrder(order.id, await requestFor(payload, staff))).rejects.toMatchObject({
       code: 'REFUND_NOT_ALLOWED',
     })
     await expect(
@@ -203,7 +196,7 @@ describe('refund requests', () => {
     const declined = await declineRefund(
       paid.id,
       'Already watched everything',
-      await requestFor(payload, manager),
+      await requestFor(payload, staff),
     )
     expect(declined).toMatchObject({
       refundStatus: 'declined',
@@ -221,11 +214,11 @@ describe('refund requests', () => {
 
   it('cannot be declined without a note, or when nothing was requested', async () => {
     await expect(
-      declineRefund(paid.id, 'x', await requestFor(payload, manager)),
+      declineRefund(paid.id, 'x', await requestFor(payload, staff)),
     ).rejects.toMatchObject({ code: 'REFUND_NOT_ALLOWED' })
     await ask()
     await expect(
-      declineRefund(paid.id, '  ', await requestFor(payload, manager)),
+      declineRefund(paid.id, '  ', await requestFor(payload, staff)),
     ).rejects.toMatchObject({ code: 'REVIEW_NOTE_REQUIRED' })
   })
 })

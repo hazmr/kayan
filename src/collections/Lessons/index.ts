@@ -8,7 +8,6 @@ import type {
 import { createCourseContent, editCourseContent, readCourseContent } from '@/access/courses'
 import { isStaff } from '@/access/roles'
 import { assertCanEditCourse } from '@/lib/courses/assertCanEditCourse'
-import { courseActorsOf } from '@/lib/courses/courseActors'
 import { AppError } from '@/lib/errors/AppError'
 import type { Lesson } from '@/payload-types'
 
@@ -43,26 +42,10 @@ const syncCourseFromModule: CollectionBeforeValidateHook<Lesson> = async ({
 }
 
 /**
- * The video id is the secret part of a lesson. Only staff and the course's own doctor read it
- * through the API. Students never do: the player page resolves it on the server (milestone 4).
+ * The video id is the secret part of a lesson. Only the Admin and instructors read it through
+ * the API. Students never do: the player page resolves it on the server after checking access.
  */
-const readVideoId: FieldAccess<Lesson> = async ({ req, doc }) => {
-  if (isStaff(req.user)) return true
-  const courseId = relationId(doc?.course)
-  if (!req.user || !courseId) return false
-
-  // A list of lessons usually shares one course, so remember the answer for this request.
-  const cache = (req.context.videoIdAccess ??= new Map<string, boolean>()) as Map<string, boolean>
-  const cached = cache.get(courseId)
-  if (cached !== undefined) return cached
-
-  const course = await req.payload
-    .findByID({ collection: 'courses', id: courseId, depth: 0, overrideAccess: true, req })
-    .catch(() => null)
-  const allowed = course !== null && courseActorsOf(req.user, course).length > 0
-  cache.set(courseId, allowed)
-  return allowed
-}
+const readVideoId: FieldAccess<Lesson> = ({ req }) => isStaff(req.user)
 
 /** Students' "completed" marks point at the lesson, so they go first when a lesson is deleted. */
 const removeLessonProgress: CollectionBeforeDeleteHook = async ({ id, req }) => {

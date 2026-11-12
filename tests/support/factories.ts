@@ -1,11 +1,12 @@
 import { createLocalReq, type Payload, type PayloadRequest } from 'payload'
 
-import type { Role } from '@/access/roles'
+import { ADMIN_ID, type Role } from '@/access/roles'
 import { TRUSTED_USER_WRITE } from '@/collections/Users/hooks'
 import type { CourseStatus } from '@/lib/courses/transitions'
 import { approveReceipt } from '@/lib/orders/reviewReceipt'
 import { startOrder } from '@/lib/orders/startOrder'
 import { submitReceipt, type UploadedImage } from '@/lib/orders/submitReceipt'
+import { createAdmin } from '@/lib/users/createAdmin'
 import type { Category, Course, Lesson, Order, User } from '@/payload-types'
 
 /** Every test user has this password, so password-confirmed actions can be tested. */
@@ -28,18 +29,35 @@ export const receiptFile = (): UploadedImage => ({
   size: PNG.length,
 })
 
+/**
+ * A user with this role. The Admin is special: there is exactly one, with id zero (the database
+ * enforces it), so asking for a 'superadmin' returns that one account, creating it the first time.
+ */
 export async function makeUser(
   payload: Payload,
   role: Role,
   label: string = role,
   email?: string,
 ): Promise<User> {
+  if (role === 'superadmin') {
+    const existing = await payload
+      .findByID({ collection: 'users', id: ADMIN_ID, depth: 0, overrideAccess: true })
+      .catch(() => null)
+    return (
+      existing ??
+      createAdmin(payload, {
+        email: email ?? 'admin@kayan.test',
+        password: PASSWORD,
+        name: 'Test Admin',
+      })
+    )
+  }
   const slug = unique(label)
   return payload.create({
     collection: 'users',
     data: {
       name: `Test ${label}`,
-      email: email ?? `${slug}@vetudy.test`,
+      email: email ?? `${slug}@kayan.test`,
       password: PASSWORD,
       role,
       _verified: true,
@@ -69,7 +87,6 @@ export async function makeCategory(payload: Payload, parent?: Category): Promise
 interface CourseOptions {
   /** Piasters. */
   price?: number
-  sharePercent?: number
   status?: CourseStatus
 }
 
@@ -85,7 +102,6 @@ export async function makeCourse(
       description: 'Test course',
       owner: doctor.id,
       price: options.price ?? 40000,
-      ownerSharePercent: options.sharePercent ?? 70,
       status: 'draft',
     },
     locale: 'ar',
@@ -130,6 +146,15 @@ export async function makeLesson(
   })
 }
 
+/** The Admin's percent of each new sale. Each test file sets the value its numbers assume. */
+export async function setAdminSharePercent(payload: Payload, percent: number): Promise<void> {
+  await payload.updateGlobal({
+    slug: 'platform-settings',
+    data: { adminSharePercent: percent },
+    overrideAccess: true,
+  })
+}
+
 export async function setPaymentSettings(payload: Payload): Promise<void> {
   await payload.updateGlobal({
     slug: 'payment-settings',
@@ -138,7 +163,7 @@ export async function setPaymentSettings(payload: Payload): Promise<void> {
   })
 }
 
-/** The student pressed Buy and uploaded a receipt: the order waits for a manager. */
+/** The student pressed Buy and uploaded a receipt: the order waits for the Admin or an instructor. */
 export async function makeAwaitingReview(
   payload: Payload,
   student: User,
@@ -158,15 +183,15 @@ export async function makeAwaitingReview(
   })
 }
 
-/** A finished sale: bought, receipt uploaded, approved by `manager`. */
+/** A finished sale: bought, receipt uploaded, approved by `approver` (the Admin or an instructor). */
 export async function makePaidOrder(
   payload: Payload,
   student: User,
   course: Course,
-  manager: User,
+  approver: User,
 ): Promise<Order> {
   const waiting = await makeAwaitingReview(payload, student, course)
-  return approveReceipt(waiting.id, await requestFor(payload, manager))
+  return approveReceipt(waiting.id, await requestFor(payload, approver))
 }
 
 export async function enrollmentsOf(payload: Payload, user: User, course: Course) {

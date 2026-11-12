@@ -17,7 +17,7 @@ export default defineConfig({
     ],
   },
   test: {
-    env: testEnv('vetudy_test'),
+    env: testEnv('kayan_test'),
     projects: [
       {
         extends: true,

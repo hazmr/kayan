@@ -31,7 +31,7 @@ export function verifyEmailHTML({ token, user }: { token: string; user: Recipien
       heading: 'تأكيد بريدك الإلكتروني',
       paragraphs: [
         greeting(user, 'ar'),
-        'شكراً لتسجيلك في Vetudy. اضغط على الزر التالي لتأكيد بريدك الإلكتروني وتفعيل حسابك.',
+        `شكراً لتسجيلك في ${env.siteName.ar}. اضغط على الزر التالي لتأكيد بريدك الإلكتروني وتفعيل حسابك.`,
         'إذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة.',
       ],
       action: { label: 'تأكيد البريد الإلكتروني', url: pageUrl('ar', 'verify-email', token) },
@@ -40,7 +40,7 @@ export function verifyEmailHTML({ token, user }: { token: string; user: Recipien
       heading: 'Verify your email',
       paragraphs: [
         greeting(user, 'en'),
-        'Thanks for signing up to Vetudy. Use the button below to verify your email and activate your account.',
+        `Thanks for signing up to ${env.siteName.en}. Use the button below to verify your email and activate your account.`,
         'If you did not create this account, you can ignore this message.',
       ],
       action: { label: 'Verify email', url: pageUrl('en', 'verify-email', token) },

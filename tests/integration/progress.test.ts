@@ -21,7 +21,7 @@ import { startApp, stopApp } from '../support/payload'
 // "Lesson progress": a student who owns a course marks lessons complete and sees how far they are.
 
 let payload: Payload
-let manager: User
+let staff: User
 let doctor: User
 let student: User
 let otherStudent: User
@@ -81,15 +81,15 @@ const myCourse = async (who: User, target = course) =>
 beforeAll(async () => {
   payload = await startApp()
   await setPaymentSettings(payload)
-  manager = await makeUser(payload, 'manager')
+  staff = await makeUser(payload, 'admin', 'staff')
   doctor = await makeUser(payload, 'admin')
   student = await makeUser(payload, 'student')
   otherStudent = await makeUser(payload, 'student')
   stranger = await makeUser(payload, 'student')
   course = await makeCourse(payload, doctor, { price: 40000 })
   lessons = await addLessons(course, 4)
-  await makePaidOrder(payload, student, course, manager)
-  await makePaidOrder(payload, otherStudent, course, manager)
+  await makePaidOrder(payload, student, course, staff)
+  await makePaidOrder(payload, otherStudent, course, staff)
 })
 afterAll(() => stopApp(payload))
 
@@ -157,14 +157,14 @@ describe('who may track progress', () => {
   it('refuses a guest, the course doctor, and staff', async () => {
     await expect(mark(null, lessons[1]!)).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
     await expect(mark(doctor, lessons[1]!)).rejects.toMatchObject({ code: 'FORBIDDEN' })
-    await expect(mark(manager, lessons[1]!)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(mark(staff, lessons[1]!)).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 
   it('refuses a student whose purchase was refunded', async () => {
     const refundedStudent = await makeUser(payload, 'student')
-    const order = await makePaidOrder(payload, refundedStudent, course, manager)
+    const order = await makePaidOrder(payload, refundedStudent, course, staff)
     await mark(refundedStudent, lessons[0]!)
-    await refundOrder(order.id, await requestFor(payload, manager))
+    await refundOrder(order.id, await requestFor(payload, staff))
     await expect(mark(refundedStudent, lessons[1]!)).rejects.toMatchObject({ code: 'FORBIDDEN' })
     // and the course is gone from their list, as before
     expect((await listMyCourses(refundedStudent, 'ar')).some((item) => item.id === course.id)).toBe(
@@ -194,7 +194,7 @@ describe('who may track progress', () => {
       ).docs.length
     expect(await seenBy(student)).toBeGreaterThan(0)
     expect(await seenBy(otherStudent)).toBe(0)
-    expect(await seenBy(manager)).toBe(0)
+    expect(await seenBy(staff)).toBe(0)
     expect(await seenBy(doctor)).toBe(0)
   })
 
@@ -225,7 +225,7 @@ describe('on the lesson page', () => {
       new Set([lessons[0]!.id, lessons[1]!.id]),
     )
 
-    for (const viewer of [doctor, manager, null]) {
+    for (const viewer of [doctor, staff, null]) {
       const page = await getWatchPage(course.slug!, lessons[0]!.id, viewer, 'ar')
       if (page.kind === 'notFound') throw new Error('expected a page')
       expect(page.progress, viewer?.role ?? 'guest').toEqual({ trackable: false, completedIds: [] })
@@ -241,7 +241,7 @@ describe('when the doctor changes the course', () => {
     const own = await makeCourse(payload, doctor, { price: 40000 })
     const two = await addLessons(own, 2)
     const buyer = await makeUser(payload, 'student')
-    await makePaidOrder(payload, buyer, own, manager)
+    await makePaidOrder(payload, buyer, own, staff)
     await mark(buyer, two[0]!)
     await mark(buyer, two[1]!)
     expect((await myCourse(buyer, own)).progress.percent).toBe(100)

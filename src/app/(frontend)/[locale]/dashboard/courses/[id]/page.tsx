@@ -44,7 +44,6 @@ export default async function EditCoursePage({ params }: PageProps) {
       <CourseStatusPanel
         courseId={course.id}
         status={course.status}
-        reviewNote={course.reviewNote}
         moveTo={course.can.moveTo}
         missing={{
           category: course.categoryId === '',

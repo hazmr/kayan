@@ -36,14 +36,11 @@ function today(): string {
   return new Date().toLocaleDateString('en-CA')
 }
 
-export function RecordPayoutButton({
-  doctorId,
-  doctorName,
+/** "Record a payment": the academy paid the Admin. The Admin or any instructor may record it. */
+export function RecordPaymentButton({
   balance,
 }: {
-  doctorId: string
-  doctorName: string
-  /** Piasters. */
+  /** What is owed to the Admin now, in piasters. */
   balance: number
 }) {
   const t = useTranslations('dashboard.earnings')
@@ -55,7 +52,7 @@ export function RecordPayoutButton({
   const [paidOn, setPaidOn] = useState(today())
   const [note, setNote] = useState('')
 
-  // Whole piasters from the pounds the owner typed, so no rounding error is ever stored.
+  // Whole piasters from the pounds typed, so no rounding error is ever stored.
   const piasters = Math.round(Number(amount) * 100)
   const valid = Number.isFinite(piasters) && piasters >= 1
   const balanceAfter = balance - (valid ? piasters : 0)
@@ -65,7 +62,7 @@ export function RecordPayoutButton({
     event.preventDefault()
     if (!valid) return
     const result = await run(() =>
-      sendJson('POST', '/api/payouts/record', { doctorId, amount: piasters, paidAt: paidOn, note }),
+      sendJson('POST', '/api/admin-payments/record', { amount: piasters, paidAt: paidOn, note }),
     )
     if (result.ok) {
       setOpen(false)
@@ -84,21 +81,21 @@ export function RecordPayoutButton({
           setOpen(true)
         }}
       >
-        {t('recordPayout')}
+        {t('recordPayment')}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('recordTitle', { name: doctorName })}</DialogTitle>
+            <DialogTitle>{t('recordTitle')}</DialogTitle>
             <DialogDescription>{t('recordHelp')}</DialogDescription>
           </DialogHeader>
           <form onSubmit={submit} className="flex flex-col gap-4">
             <FormError code={errorCode} />
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="payout-amount">{t('amountLabel')}</Label>
+              <Label htmlFor="payment-amount">{t('amountLabel')}</Label>
               <Input
-                id="payout-amount"
+                id="payment-amount"
                 type="number"
                 inputMode="decimal"
                 min="0.01"
@@ -106,18 +103,18 @@ export function RecordPayoutButton({
                 required
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                aria-describedby="payout-amount-help"
+                aria-describedby="payment-amount-help"
                 dir="ltr"
               />
-              <p id="payout-amount-help" className="text-xs text-muted-foreground">
+              <p id="payment-amount-help" className="text-xs text-muted-foreground">
                 {t('amountHelp')}
               </p>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="payout-date">{t('dateLabel')}</Label>
+              <Label htmlFor="payment-date">{t('dateLabel')}</Label>
               <Input
-                id="payout-date"
+                id="payment-date"
                 type="date"
                 required
                 max={today()}
@@ -128,16 +125,16 @@ export function RecordPayoutButton({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="payout-note">{t('noteLabel')}</Label>
+              <Label htmlFor="payment-note">{t('noteLabel')}</Label>
               <Textarea
-                id="payout-note"
+                id="payment-note"
                 rows={2}
                 maxLength={500}
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
-                aria-describedby="payout-note-help"
+                aria-describedby="payment-note-help"
               />
-              <p id="payout-note-help" className="text-xs text-muted-foreground">
+              <p id="payment-note-help" className="text-xs text-muted-foreground">
                 {t('noteHelp')}
               </p>
             </div>
@@ -175,14 +172,13 @@ export function RecordPayoutButton({
   )
 }
 
-export function DeletePayoutButton({
-  payoutId,
-  doctorName,
+/** Removes a payment record. Admin only, with their password; everyone is emailed. */
+export function DeletePaymentButton({
+  paymentId,
   amount,
   paidAt,
 }: {
-  payoutId: string
-  doctorName: string
+  paymentId: string
   /** Piasters. */
   amount: number
   paidAt: string
@@ -198,7 +194,7 @@ export function DeletePayoutButton({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const result = await run(() =>
-      sendJson('POST', `/api/payouts/${payoutId}/delete`, { password }),
+      sendJson('POST', `/api/admin-payments/${paymentId}/delete`, { password }),
     )
     if (result.ok) {
       setOpen(false)
@@ -218,7 +214,7 @@ export function DeletePayoutButton({
           setOpen(true)
         }}
       >
-        {t('deletePayout')}
+        {t('deletePayment')}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -227,7 +223,6 @@ export function DeletePayoutButton({
             <DialogDescription>
               {t('deleteBody', {
                 amount: money(amount),
-                name: doctorName,
                 date: format.dateTime(new Date(paidAt), { dateStyle: 'medium' }),
               })}
             </DialogDescription>
@@ -235,18 +230,18 @@ export function DeletePayoutButton({
           <form onSubmit={submit} className="flex flex-col gap-4">
             <FormError code={errorCode} />
             <div className="flex flex-col gap-2">
-              <Label htmlFor="payout-delete-password">{t('passwordLabel')}</Label>
+              <Label htmlFor="payment-delete-password">{t('passwordLabel')}</Label>
               <Input
-                id="payout-delete-password"
+                id="payment-delete-password"
                 type="password"
                 autoComplete="current-password"
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                aria-describedby="payout-delete-password-help"
+                aria-describedby="payment-delete-password-help"
                 dir="ltr"
               />
-              <p id="payout-delete-password-help" className="text-xs text-muted-foreground">
+              <p id="payment-delete-password-help" className="text-xs text-muted-foreground">
                 {t('passwordHelp')}
               </p>
             </div>

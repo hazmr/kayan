@@ -3,8 +3,7 @@ import { getPayload, type Where } from 'payload'
 
 import { isStaff, isSuperadmin, roleOf } from '@/access/roles'
 import { relationId } from '@/collections/shared/relationId'
-import { DEFAULT_OWNER_SHARE_PERCENT } from '@/globals/PlatformSettings'
-import { courseActorsOf } from '@/lib/courses/courseActors'
+import { DEFAULT_ADMIN_SHARE_PERCENT } from '@/globals/PlatformSettings'
 import { nextStatusesFor, type CourseStatus } from '@/lib/courses/transitions'
 import { piastersToEgp } from '@/lib/money'
 import type { User } from '@/payload-types'
@@ -115,17 +114,6 @@ export async function searchCourses(
   }
 }
 
-export async function countCoursesInReview(user: User): Promise<number> {
-  const payload = await getPayload({ config })
-  const { totalDocs } = await payload.count({
-    collection: 'courses',
-    where: { status: { equals: 'in_review' } },
-    overrideAccess: false,
-    user,
-  })
-  return totalDocs
-}
-
 /** Everything the course editor needs. Null when the course is missing or not this user's to edit. */
 export async function getCourseForEdit(user: User, id: string): Promise<CourseEdit | null> {
   const payload = await getPayload({ config })
@@ -133,9 +121,6 @@ export async function getCourseForEdit(user: User, id: string): Promise<CourseEd
     .findByID({ collection: 'courses', id, depth: 1, locale: 'all', overrideAccess: false, user })
     .catch(() => null)
   if (!course) return null
-
-  const actors = courseActorsOf(user, course)
-  if (actors.length === 0) return null
 
   const [modules, lessons] = await Promise.all([
     payload.find({
@@ -186,17 +171,15 @@ export async function getCourseForEdit(user: User, id: string): Promise<CourseEd
     title: localized(course.title),
     description: localized(course.description),
     status: course.status,
-    reviewNote: course.reviewNote ?? '',
     categoryId: relationId(course.category) ?? '',
     thumbnail: thumbnail && thumbnailUrl ? { id: thumbnail.id, url: thumbnailUrl } : null,
     priceEgp: piastersToEgp(course.price),
     owner: { id: owner?.id ?? relationId(course.owner) ?? '', name: owner?.name ?? '' },
-    ownerSharePercent: course.ownerSharePercent ?? null,
     modules: moduleList,
     can: {
-      editPrice: isStaff(user) || course.status === 'draft',
-      editOwnerAndShare: isSuperadmin(user),
-      moveTo: nextStatusesFor(course.status, actors),
+      editPrice: isStaff(user),
+      editOwner: isSuperadmin(user),
+      moveTo: nextStatusesFor(course.status),
     },
   }
 }
@@ -253,16 +236,16 @@ export async function listUsers(user: User, search?: string): Promise<UserRow[]>
     email: row.email,
     role: roleOf(row) ?? 'student',
     verified: row._verified === true,
-    master: row.isMasterOwner === true,
   }))
 }
 
-export async function getDefaultOwnerSharePercent(user: User): Promise<number> {
+/** The Admin's percent of each sale. The Admin and instructors may read it. */
+export async function getAdminSharePercent(user: User): Promise<number> {
   const payload = await getPayload({ config })
   const settings = await payload.findGlobal({
     slug: 'platform-settings',
     overrideAccess: false,
     user,
   })
-  return settings.defaultOwnerSharePercent ?? DEFAULT_OWNER_SHARE_PERCENT
+  return settings.adminSharePercent ?? DEFAULT_ADMIN_SHARE_PERCENT
 }

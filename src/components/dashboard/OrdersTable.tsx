@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { pick } from '@/lib/dashboard/localized'
-import type { OrderRow, SaleRow } from '@/lib/dashboard/orderQueries'
+import type { OrderRow } from '@/lib/dashboard/orderQueries'
 import { ORDER_STATUSES, type OrderStatus } from '@/lib/orders/transitions'
 
 type Query = { status?: string; q?: string; page?: number }
@@ -17,7 +17,7 @@ function href(query: Query) {
   return { pathname: '/dashboard/orders', query: clean } as const
 }
 
-/** The status tabs. Doctors get only the statuses they are allowed to see. */
+/** The status tabs. */
 export async function StatusTabs({
   statuses,
   selected,
@@ -147,51 +147,6 @@ export async function StaffOrdersTable({ rows }: { rows: OrderRow[] }) {
                   <OrderStatusBadge status={row.status} />
                   {row.refundRequested && <Badge variant="secondary">{t('refundAsked')}</Badge>}
                 </span>
-              </td>
-              <td className="px-4 py-3 text-muted-foreground">
-                {format.dateTime(new Date(row.createdAt), { dateStyle: 'medium' })}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-export async function SalesTable({ rows }: { rows: SaleRow[] }) {
-  const [t, locale, format] = await Promise.all([
-    getTranslations('dashboard.ordersPage'),
-    getLocale(),
-    getFormatter(),
-  ])
-  const money = (value: number) =>
-    format.number(value, { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })
-
-  return (
-    <div className="overflow-x-auto rounded-xl border bg-card">
-      <table className="w-full min-w-[680px] text-sm">
-        <thead className="bg-muted">
-          <tr>
-            {(
-              ['colStudent', 'colCourse', 'colAmount', 'colShare', 'colStatus', 'colDate'] as const
-            ).map((key) => (
-              <th key={key} className="px-4 py-2 text-start font-medium">
-                {t(key)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rows.map((row, index) => (
-            // No reference to key on: a doctor's rows carry none, on purpose.
-            <tr key={`${row.createdAt}-${index}`}>
-              <td className="px-4 py-3">{row.studentName}</td>
-              <td className="px-4 py-3">{pick(row.courseTitle, locale)}</td>
-              <td className="px-4 py-3">{money(row.amountEgp)}</td>
-              <td className="px-4 py-3 font-medium text-primary">{money(row.shareEgp)}</td>
-              <td className="px-4 py-3">
-                <OrderStatusBadge status={row.status} />
               </td>
               <td className="px-4 py-3 text-muted-foreground">
                 {format.dateTime(new Date(row.createdAt), { dateStyle: 'medium' })}

@@ -40,8 +40,10 @@ test("a doctor looking at their own course sees 'manage', not 'buy'", async ({ b
   await expect(doctor).toHaveURL(/\/en\/dashboard$/)
 })
 
-test('owner and manager get a staff box instead of a buy button', async ({ browser }) => {
-  for (const email of [E2E.owner, E2E.manager]) {
+test('the Admin and an instructor who does not teach it get a staff box instead of a buy button', async ({
+  browser,
+}) => {
+  for (const email of [E2E.owner, E2E.son]) {
     const staff = await personAt(browser, email)
     await staff.goto(coursePage)
     await expect(staff.getByText('Staff accounts do not buy courses')).toBeVisible()
@@ -63,12 +65,13 @@ test('the role dashboards work in Arabic, right to left', async ({ browser }) =>
   await owner.goto('/ar/dashboard')
   await expect(owner.locator('html')).toHaveAttribute('dir', 'rtl')
   await expect(owner.getByRole('heading', { name: 'نظرة عامة' })).toBeVisible()
-  await expect(owner.getByText('نصيب المنصة').first()).toBeVisible()
-  await expect(owner.getByText('نصيب الأطباء').first()).toBeVisible()
+  await expect(owner.getByText('نصيب الأكاديمية').first()).toBeVisible()
+  await expect(owner.getByText('نصيب مسؤول النظام').first()).toBeVisible()
 
   const doctor = await personAt(browser, E2E.doctor)
   await doctor.goto('/ar/dashboard')
-  await expect(doctor.getByText('إجمالي الأرباح').first()).toBeVisible()
+  await expect(doctor.getByRole('heading', { name: 'نظرة عامة' })).toBeVisible()
+  await expect(doctor.getByText('إيصالات للمراجعة').first()).toBeVisible()
 
   await doctor.goto('/ar/courses/' + E2E.courseSlug)
   await expect(doctor.getByText('هذه دورتك')).toBeVisible()
@@ -85,8 +88,8 @@ test('the dashboard menu highlights exactly one item: the page you are on', asyn
   await expect(current).toHaveText('Overview')
 
   for (const [path, label] of [
-    ['/en/dashboard/orders', 'Sales'],
-    ['/en/dashboard/earnings', 'Earnings'],
+    ['/en/dashboard/orders', 'Orders'],
+    ['/en/dashboard/earnings', "Admin's share"],
     ['/en/dashboard/courses', 'Courses'],
   ] as const) {
     await doctor.goto(path)
@@ -95,19 +98,26 @@ test('the dashboard menu highlights exactly one item: the page you are on', asyn
   }
 })
 
-test('the master owner is marked and out of reach, even for another owner', async ({ browser }) => {
-  const other = await personAt(browser, E2E.owner2)
-  await other.goto('/en/dashboard/users')
-  const masterRow = other.locator('tr', { hasText: E2E.owner })
-  await expect(masterRow.getByText('Master owner')).toBeVisible()
-  // no role dropdown and no delete button on the master's row
-  await expect(masterRow.locator('select')).toHaveCount(0)
-  await expect(masterRow.getByRole('button', { name: 'Delete' })).toHaveCount(0)
-  // everyone else can still be managed by this owner
-  const managerRow = other.locator('tr', { hasText: E2E.manager })
-  await expect(managerRow.locator('select')).toHaveCount(1)
-  await expect(managerRow.getByRole('button', { name: 'Delete' })).toBeVisible()
-  await expect(other.getByText('Master owner')).toHaveCount(1)
+test('the Users page is for the Admin only, and the Admin row has no controls', async ({
+  browser,
+}) => {
+  const admin = await personAt(browser, E2E.owner)
+  await admin.goto('/en/dashboard/users')
+  const adminRow = admin.locator('tr', { hasText: E2E.owner })
+  await expect(adminRow.locator('select')).toHaveCount(0)
+  await expect(adminRow.getByRole('button', { name: 'Delete' })).toHaveCount(0)
+  // an instructor can be managed, but only made an instructor or a student, never Admin
+  const sonRow = admin.locator('tr', { hasText: E2E.son })
+  await expect(sonRow.locator('select option')).toHaveText(['Instructor', 'Student'])
+  await expect(sonRow.getByRole('button', { name: 'Delete' })).toBeVisible()
+
+  // an instructor does not even get the page
+  const son = await personAt(browser, E2E.son)
+  await expect(
+    son.getByRole('navigation', { name: 'Dashboard menu' }).getByRole('link', { name: 'Users' }),
+  ).toHaveCount(0)
+  await son.goto('/en/dashboard/users')
+  await expect(son).toHaveURL(/\/en\/dashboard$/)
 })
 
 test('the navbar links in the middle depend on who you are, and are not repeated in the account menu', async ({
@@ -132,7 +142,7 @@ test('the navbar links in the middle depend on who you are, and are not repeated
   await expect(student.getByRole('menuitem', { name: 'My courses' })).toHaveCount(0)
   await expect(student.getByRole('menuitem', { name: 'My orders' })).toBeVisible()
 
-  for (const email of [E2E.doctor, E2E.manager, E2E.owner]) {
+  for (const email of [E2E.doctor, E2E.son, E2E.owner]) {
     const worker = await personAt(browser, email)
     await worker.goto('/en')
     await expect(links(worker), email).toHaveText(['Courses', 'Dashboard'])

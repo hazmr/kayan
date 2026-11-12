@@ -15,8 +15,7 @@ import { Enrollments } from '@/collections/Enrollments'
 import { LessonProgress } from '@/collections/LessonProgress'
 import { Modules } from '@/collections/Modules'
 import { Orders } from '@/collections/Orders'
-import { OwnerPromotions } from '@/collections/OwnerPromotions'
-import { Payouts } from '@/collections/Payouts'
+import { AdminPayments } from '@/collections/AdminPayments'
 import { Receipts } from '@/collections/Receipts'
 import { Users } from '@/collections/Users'
 import { PaymentSettings } from '@/globals/PaymentSettings'
@@ -47,12 +46,11 @@ export default buildConfig({
     Categories,
     Media,
     Users,
-    OwnerPromotions,
     Orders,
     Receipts,
     Enrollments,
     LessonProgress,
-    Payouts,
+    AdminPayments,
   ],
   globals: [PlatformSettings, PaymentSettings],
 

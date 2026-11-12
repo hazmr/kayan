@@ -3,6 +3,6 @@ import { listCategoryOptions } from '@/lib/dashboard/queries'
 import { requireDashboardUser } from '@/lib/dashboard/requireUser'
 
 export default async function DashboardCategoriesPage() {
-  await requireDashboardUser('superadmin', 'manager')
+  await requireDashboardUser('superadmin', 'admin')
   return <CategoryManager categories={await listCategoryOptions()} />
 }

@@ -5,7 +5,7 @@ import { listRefundRequests } from '@/lib/dashboard/paymentQueries'
 import { requireDashboardUser } from '@/lib/dashboard/requireUser'
 
 export default async function RefundsPage() {
-  const user = await requireDashboardUser('superadmin', 'manager')
+  const user = await requireDashboardUser('superadmin', 'admin')
   const [t, items] = await Promise.all([
     getTranslations('dashboard.refunds'),
     listRefundRequests(user),

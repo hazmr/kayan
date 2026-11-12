@@ -4,29 +4,20 @@
 import config from '@payload-config'
 import { getPayload } from 'payload'
 
-import { MASTER_OWNER_SCRIPT } from '@/collections/Users/hooks'
-
 import { E2E } from './e2eData'
-import { makeUser, setPaymentSettings } from './factories'
+import { makeUser, setAdminSharePercent, setPaymentSettings } from './factories'
 
 const payload = await getPayload({ config })
 
-const master = await makeUser(payload, 'superadmin', 'owner', E2E.owner)
-await makeUser(payload, 'superadmin', 'second owner', E2E.owner2)
-// The first owner is the master owner, as the real owner will be (what `pnpm master:set` does).
-await payload.update({
-  collection: 'users',
-  id: master.id,
-  data: { isMasterOwner: true },
-  context: { [MASTER_OWNER_SCRIPT]: true },
-  overrideAccess: true,
-})
-await makeUser(payload, 'manager', 'manager', E2E.manager)
+await makeUser(payload, 'superadmin', 'owner', E2E.owner)
+await makeUser(payload, 'admin', 'son', E2E.son)
 const doctor = await makeUser(payload, 'admin', 'doctor', E2E.doctor)
 await makeUser(payload, 'student', 'student', E2E.student)
 await setPaymentSettings(payload)
+// The Admin earns 30% of each sale, so a EGP 400 sale is EGP 120 to the Admin and EGP 280 to the academy.
+await setAdminSharePercent(payload, 30)
 
-// EGP 400, doctor keeps 70% (EGP 280). Titled in Arabic (the default language); English falls back.
+// EGP 400. Titled in Arabic (the default language); English falls back.
 const course = await payload.create({
   collection: 'courses',
   data: {
@@ -34,7 +25,6 @@ const course = await payload.create({
     description: 'A course made for the browser test.',
     owner: doctor.id,
     price: 40000,
-    ownerSharePercent: 70,
     status: 'draft',
   },
   locale: 'ar',

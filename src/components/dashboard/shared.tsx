@@ -26,7 +26,6 @@ import { useApiAction } from '@/lib/api/useApiAction'
 
 const STATUS_VARIANT: Record<CourseStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   draft: 'outline',
-  in_review: 'secondary',
   published: 'default',
   archived: 'destructive',
 }

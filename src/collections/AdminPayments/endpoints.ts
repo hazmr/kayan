@@ -1,7 +1,7 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 
+import { deleteAdminPayment, recordAdminPayment } from '@/lib/earnings/adminPayments'
 import { AppError } from '@/lib/errors/AppError'
-import { deletePayout, recordPayout } from '@/lib/earnings/payouts'
 
 // Thin wrappers: read the input, call ONE function, answer. The rules live in src/lib/earnings.
 
@@ -12,27 +12,24 @@ async function jsonBody(req: PayloadRequest): Promise<Record<string, unknown>> {
   return typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
 }
 
-export const payoutEndpoints: Endpoint[] = [
-  // { doctorId, amount (whole piasters), paidAt?, note? }
+export const adminPaymentEndpoints: Endpoint[] = [
+  // POST /api/admin-payments/record  { amount (whole piasters), paidAt?, note? }
   {
     path: '/record',
     method: 'post',
     handler: async (req) => {
       const body = await jsonBody(req)
-      const doctorId = typeof body.doctorId === 'string' ? body.doctorId : ''
-      if (!UUID.test(doctorId)) throw new AppError('NOT_FOUND')
-      const payout = await recordPayout({
-        doctorId,
-        // Anything that is not a whole number becomes NaN, which recordPayout refuses.
+      const payment = await recordAdminPayment({
+        // Anything that is not a whole number becomes NaN, which recordAdminPayment refuses.
         amount: typeof body.amount === 'number' ? body.amount : Number.NaN,
         paidAt: typeof body.paidAt === 'string' ? body.paidAt : undefined,
         note: typeof body.note === 'string' ? body.note : undefined,
         req,
       })
-      return Response.json({ id: payout.id, amount: payout.amount })
+      return Response.json({ id: payment.id, amount: payment.amount })
     },
   },
-  // { password }
+  // POST /api/admin-payments/:id/delete  { password }
   {
     path: '/:id/delete',
     method: 'post',
@@ -40,7 +37,7 @@ export const payoutEndpoints: Endpoint[] = [
       const id = req.routeParams?.id
       if (typeof id !== 'string' || !UUID.test(id)) throw new AppError('NOT_FOUND')
       const body = await jsonBody(req)
-      await deletePayout(id, typeof body.password === 'string' ? body.password : '', req)
+      await deleteAdminPayment(id, typeof body.password === 'string' ? body.password : '', req)
       return Response.json({ id })
     },
   },

@@ -1,23 +1,19 @@
-import { CircleCheck, CreditCard, LayoutList, Undo2 } from 'lucide-react'
+import { CircleCheck, CreditCard, Undo2 } from 'lucide-react'
 import { getFormatter, getLocale, getTranslations } from 'next-intl/server'
 
-import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import type { Locale } from '@/i18n/locales'
-import type { DoctorOverview, StaffOverview, WorkItem } from '@/lib/dashboard/overview'
+import type { StaffOverview, WorkItem } from '@/lib/dashboard/overview'
 import { pick } from '@/lib/dashboard/localized'
-import type { PlatformRevenue } from '@/lib/earnings/getPlatformRevenue'
+import type { AcademyRevenue } from '@/lib/earnings/getAcademyRevenue'
 
-import { SalesTable } from './OrdersTable'
 import { getMoneyFormatter, Stat } from './Stat'
 
-// The first page of the dashboard, one version per role. The three differ in what they know:
-//   owner    the whole money picture (this file's RevenueOverview)
-//   manager  the work queues, and no money at all (QueueOverview)
-//   doctor   only their own numbers (DoctorHome)
+// The first page of the dashboard, the same for the Admin and every instructor:
+// the work waiting (QueueOverview), then the academy's money (RevenueOverview).
 
 // ---------------------------------------------------------------------------------------------
-// Work queues: for the owner and managers
+// Work queues
 // ---------------------------------------------------------------------------------------------
 
 function QueueCard({
@@ -125,17 +121,16 @@ async function WorkPanel({
 }
 
 /**
- * The manager's whole home page (and the top of the owner's): what is waiting for a decision,
- * oldest first, with the first few items listed so the work can start from here. No money split.
+ * What is waiting for a decision, oldest first, with the first few items listed so the work can
+ * start from here.
  */
 export async function QueueOverview({ data }: { data: StaffOverview }) {
   const t = await getTranslations('dashboard.overview')
-  const nothingWaiting =
-    data.awaitingReceipts === 0 && data.refundRequests === 0 && data.coursesInReview === 0
+  const nothingWaiting = data.awaitingReceipts === 0 && data.refundRequests === 0
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <QueueCard
           href="/dashboard/payments"
           icon={CreditCard}
@@ -147,12 +142,6 @@ export async function QueueOverview({ data }: { data: StaffOverview }) {
           icon={Undo2}
           label={t('queueRefunds')}
           count={data.refundRequests}
-        />
-        <QueueCard
-          href="/dashboard/courses?status=in_review"
-          icon={LayoutList}
-          label={t('queueCourses')}
-          count={data.coursesInReview}
         />
       </div>
 
@@ -182,15 +171,6 @@ export async function QueueOverview({ data }: { data: StaffOverview }) {
               itemHref={() => '/dashboard/refunds'}
             />
           )}
-          {data.courses.length > 0 && (
-            <WorkPanel
-              title={t('queueCourses')}
-              count={data.coursesInReview}
-              viewAllHref="/dashboard/courses?status=in_review"
-              items={data.courses}
-              itemHref={(item) => `/dashboard/courses/${item.id}`}
-            />
-          )}
         </div>
       )}
 
@@ -202,7 +182,7 @@ export async function QueueOverview({ data }: { data: StaffOverview }) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The owner's money picture
+// The academy's money
 // ---------------------------------------------------------------------------------------------
 
 function Th({ children }: { children: React.ReactNode }) {
@@ -213,14 +193,19 @@ function Th({ children }: { children: React.ReactNode }) {
  * Who gets what. Students pay `gross`; the platform keeps `platform` and the doctors earn
  * `doctors`. Refunded orders are not in any of these numbers (they have their own line).
  */
-export async function RevenueOverview({ data }: { data: PlatformRevenue }) {
+/**
+ * The academy's money, the same for the Admin and every instructor. Students pay `gross`; the
+ * Admin's share is `admin` (today's percent applies to new sales) and the academy keeps
+ * `academy`. Refunded orders are not in these numbers; they have their own line.
+ */
+export async function RevenueOverview({ data }: { data: AcademyRevenue }) {
   const [t, money, format, locale] = await Promise.all([
     getTranslations('dashboard.overview'),
     getMoneyFormatter(),
     getFormatter(),
     getLocale(),
   ])
-  const doctorsPercent = data.gross === 0 ? 0 : Math.round((data.doctors / data.gross) * 100)
+  const adminPercent = data.gross === 0 ? 0 : Math.round((data.admin / data.gross) * 100)
   const monthLabel = (month: string) =>
     format.dateTime(new Date(`${month}-15T12:00:00Z`), {
       month: 'long',
@@ -233,23 +218,20 @@ export async function RevenueOverview({ data }: { data: PlatformRevenue }) {
       <section className="flex flex-col gap-4">
         <div>
           <h2 className="text-lg font-bold">{t('revenueTitle')}</h2>
-          <p className="text-sm text-muted-foreground">{t('revenueHelp')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('revenueHelp', { percent: data.adminSharePercent })}
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label={t('gross')} value={money(data.gross)} hint={t('grossHint')} />
-          <Stat
-            label={t('platform')}
-            value={money(data.platform)}
-            tone="good"
-            hint={t('platformHint')}
-          />
-          <Stat label={t('doctors')} value={money(data.doctors)} hint={t('doctorsHint')} />
+          <Stat label={t('academy')} value={money(data.academy)} tone="good" />
+          <Stat label={t('admin')} value={money(data.admin)} />
           <Stat
             label={t('owed')}
-            value={money(data.owed)}
-            tone={data.owed < 0 ? 'bad' : undefined}
-            hint={t('owedHint', { paid: money(data.paidOut) })}
+            value={money(data.owedToAdmin)}
+            tone={data.owedToAdmin < 0 ? 'bad' : undefined}
+            hint={t('owedHint', { paid: money(data.paidToAdmin) })}
           />
         </div>
 
@@ -258,22 +240,19 @@ export async function RevenueOverview({ data }: { data: PlatformRevenue }) {
             <div
               className="flex h-3 overflow-hidden rounded-full bg-muted"
               role="img"
-              aria-label={t('splitLabel', {
-                doctors: doctorsPercent,
-                platform: 100 - doctorsPercent,
-              })}
+              aria-label={t('splitLabel', { academy: 100 - adminPercent, admin: adminPercent })}
             >
-              <div className="bg-primary" style={{ width: `${100 - doctorsPercent}%` }} />
-              <div className="bg-primary/35" style={{ width: `${doctorsPercent}%` }} />
+              <div className="bg-primary" style={{ width: `${100 - adminPercent}%` }} />
+              <div className="bg-primary/35" style={{ width: `${adminPercent}%` }} />
             </div>
             <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
               <span>
                 <span aria-hidden className="me-1 inline-block size-2 rounded-full bg-primary" />
-                {t('platform')} · {100 - doctorsPercent}%
+                {t('academy')} · {100 - adminPercent}%
               </span>
               <span>
                 <span aria-hidden className="me-1 inline-block size-2 rounded-full bg-primary/35" />
-                {t('doctors')} · {doctorsPercent}%
+                {t('admin')} · {adminPercent}%
               </span>
             </div>
           </div>
@@ -306,8 +285,8 @@ export async function RevenueOverview({ data }: { data: PlatformRevenue }) {
                 <Th>{t('colMonth')}</Th>
                 <Th>{t('sales')}</Th>
                 <Th>{t('gross')}</Th>
-                <Th>{t('platform')}</Th>
-                <Th>{t('doctors')}</Th>
+                <Th>{t('academy')}</Th>
+                <Th>{t('admin')}</Th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -316,70 +295,13 @@ export async function RevenueOverview({ data }: { data: PlatformRevenue }) {
                   <td className="px-4 py-3">{monthLabel(row.month)}</td>
                   <td className="px-4 py-3">{row.sales}</td>
                   <td className="px-4 py-3">{money(row.gross)}</td>
-                  <td className="px-4 py-3 font-medium text-primary">{money(row.platform)}</td>
-                  <td className="px-4 py-3">{money(row.doctors)}</td>
+                  <td className="px-4 py-3 font-medium text-primary">{money(row.academy)}</td>
+                  <td className="px-4 py-3">{money(row.admin)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-bold">{t('byDoctor')}</h2>
-            <p className="text-sm text-muted-foreground">{t('byDoctorHelp')}</p>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/earnings">{t('payoutsLink')}</Link>
-          </Button>
-        </div>
-        {data.perDoctor.length === 0 ? (
-          <p className="rounded-xl border border-dashed bg-card p-6 text-center text-sm text-muted-foreground">
-            {t('noSales')}
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border bg-card">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <Th>{t('colDoctor')}</Th>
-                  <Th>{t('sales')}</Th>
-                  <Th>{t('gross')}</Th>
-                  <Th>{t('platform')}</Th>
-                  <Th>{t('doctors')}</Th>
-                  <Th>{t('paidOut')}</Th>
-                  <Th>{t('owed')}</Th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {data.perDoctor.map((row) => (
-                  <tr key={row.doctorId}>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/dashboard/earnings/${row.doctorId}`}
-                        className="font-medium hover:text-primary"
-                      >
-                        {row.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">{row.sales}</td>
-                    <td className="px-4 py-3">{money(row.gross)}</td>
-                    <td className="px-4 py-3 font-medium text-primary">{money(row.platform)}</td>
-                    <td className="px-4 py-3">{money(row.doctors)}</td>
-                    <td className="px-4 py-3">{money(row.paidOut)}</td>
-                    <td
-                      className={'px-4 py-3 font-bold ' + (row.owed < 0 ? 'text-destructive' : '')}
-                    >
-                      {money(row.owed)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -396,84 +318,23 @@ export async function RevenueOverview({ data }: { data: PlatformRevenue }) {
                   <Th>{t('colCourse')}</Th>
                   <Th>{t('sales')}</Th>
                   <Th>{t('gross')}</Th>
-                  <Th>{t('platform')}</Th>
-                  <Th>{t('doctors')}</Th>
+                  <Th>{t('academy')}</Th>
+                  <Th>{t('admin')}</Th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {data.perCourse.slice(0, 10).map((row) => (
                   <tr key={row.courseId}>
-                    <td className="px-4 py-3">{pick(row.title, locale as 'ar' | 'en')}</td>
+                    <td className="px-4 py-3">{pick(row.title, locale as Locale)}</td>
                     <td className="px-4 py-3">{row.sales}</td>
                     <td className="px-4 py-3">{money(row.gross)}</td>
-                    <td className="px-4 py-3 font-medium text-primary">{money(row.platform)}</td>
-                    <td className="px-4 py-3">{money(row.doctors)}</td>
+                    <td className="px-4 py-3 font-medium text-primary">{money(row.academy)}</td>
+                    <td className="px-4 py-3">{money(row.admin)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </section>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------------------------
-// A doctor's own numbers
-// ---------------------------------------------------------------------------------------------
-
-export async function DoctorHome({ data }: { data: DoctorOverview }) {
-  const [t, tStatus, money] = await Promise.all([
-    getTranslations('dashboard.overview'),
-    getTranslations('dashboard.status'),
-    getMoneyFormatter(),
-  ])
-  const { earnings } = data
-  const negative = earnings.balance < 0
-
-  return (
-    <div className="flex flex-col gap-8">
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label={t('doctorEarned')} value={money(earnings.totalEarned)} />
-        <Stat label={t('doctorPaid')} value={money(earnings.totalPaidOut)} />
-        <Stat
-          label={t('doctorOwed')}
-          value={money(earnings.balance)}
-          tone={negative ? 'bad' : 'good'}
-        />
-        <Stat label={t('doctorStudents')} value={String(data.studentsEnrolled)} />
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-lg font-bold">{t('myCourses')}</h2>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/courses">{t('manageCourses')}</Link>
-          </Button>
-        </div>
-        <ul className="flex flex-wrap gap-2">
-          {(['published', 'in_review', 'draft', 'archived'] as const).map((status) => (
-            <li key={status} className="rounded-full border bg-card px-3 py-1 text-sm">
-              {tStatus(status)} · <span className="font-bold">{data.courses[status]}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-lg font-bold">{t('recentSales')}</h2>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/earnings">{t('allEarnings')}</Link>
-          </Button>
-        </div>
-        {data.recentSales.length === 0 ? (
-          <p className="rounded-xl border border-dashed bg-card p-6 text-center text-sm text-muted-foreground">
-            {t('noDoctorSales')}
-          </p>
-        ) : (
-          <SalesTable rows={data.recentSales} />
         )}
       </section>
     </div>

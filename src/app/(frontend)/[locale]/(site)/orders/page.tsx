@@ -65,7 +65,14 @@ export default async function OrdersPage() {
                         })}
                   </td>
                   <td className="px-4 py-3">
-                    <OrderStatusBadge status={order.status} />
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <OrderStatusBadge status={order.status} />
+                      {order.refundRequested && (
+                        <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                          {t('refundPending')}
+                        </span>
+                      )}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {format.dateTime(new Date(order.createdAt), { dateStyle: 'medium' })}

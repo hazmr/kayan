@@ -1,10 +1,11 @@
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { Suspense } from 'react'
 
 import { canUseAdminPanel, hasRole, roleOf } from '@/access/roles'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { getCurrentUser } from '@/lib/auth/getCurrentUser'
+import { siteName } from '@/lib/site'
 
 import { AccountMenu } from './AccountMenu'
 import { LocaleSwitcher } from './LocaleSwitcher'
@@ -16,7 +17,11 @@ import { SiteNav, type SiteNavItem } from './SiteNav'
  * doctors and staff get the dashboard. On a phone the links drop to a second row.
  */
 export async function SiteHeader() {
-  const [t, user] = await Promise.all([getTranslations('nav'), getCurrentUser()])
+  const [t, user, locale] = await Promise.all([
+    getTranslations('nav'),
+    getCurrentUser(),
+    getLocale(),
+  ])
   const role = roleOf(user)
 
   const items: SiteNavItem[] = [{ href: '/courses', label: t('courses') }]
@@ -27,7 +32,7 @@ export async function SiteHeader() {
     <header className="border-b bg-background">
       <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-2 px-3 sm:grid-cols-[1fr_auto_1fr] sm:px-4">
         <Link href="/" className="py-4 text-lg font-bold text-primary sm:text-xl">
-          Vetudy
+          {siteName(locale)}
         </Link>
 
         <div className="order-last col-span-full border-t py-2 sm:order-none sm:col-span-1 sm:border-t-0 sm:py-0">

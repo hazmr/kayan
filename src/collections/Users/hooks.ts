@@ -16,13 +16,6 @@ import type { User } from '@/payload-types'
  */
 export const TRUSTED_USER_WRITE = 'trustedUserWrite'
 
-/**
- * Only the `pnpm master:set` command sets this, to pick (or move) the master owner. It is
- * separate from TRUSTED_USER_WRITE on purpose: the role endpoint is "trusted", and still must
- * not be able to touch the master owner.
- */
-export const MASTER_OWNER_SCRIPT = 'masterOwnerScript'
-
 function isTrusted(req: PayloadRequest): boolean {
   return req.context[TRUSTED_USER_WRITE] === true
 }
@@ -33,8 +26,8 @@ function isTrusted(req: PayloadRequest): boolean {
  * trusted. Every other way of writing a role is refused here, including a normal save by the
  * owner, so a role can never change by accident.
  *
- * Accounts are created as students, except by the owner, who may create staff and doctors
- * directly. Making someone an owner always goes through the endpoint.
+ * Accounts are created as students, except by the Admin, who may create instructors directly.
+ * Nobody is ever made Admin through the app: there is exactly one, made by the server script.
  */
 export const guardProtectedFields: CollectionBeforeChangeHook<User> = ({
   data,
@@ -59,52 +52,6 @@ export const guardProtectedFields: CollectionBeforeChangeHook<User> = ({
     throw new AppError('FORBIDDEN')
   }
   return data
-}
-
-/**
- * The master owner is out of reach of everyone else, owners included:
- *   - nobody can mark an account as master through the app (only the server command can);
- *   - nobody but the master can save changes to the master's account (name, email, password, ...);
- *   - the master's role cannot change, not even by the master.
- * This runs for the API and for our own code alike, and the "trusted" flag does not skip it.
- */
-export const protectMasterOwnerOnChange: CollectionBeforeChangeHook<User> = ({
-  data,
-  operation,
-  originalDoc,
-  req,
-}) => {
-  if (req.context[MASTER_OWNER_SCRIPT] === true) return data
-
-  if (operation === 'create') {
-    if (data.isMasterOwner === true) throw new AppError('MASTER_OWNER_PROTECTED')
-    return data
-  }
-
-  const wasMaster = originalDoc?.isMasterOwner === true
-  if (data.isMasterOwner !== undefined && data.isMasterOwner !== wasMaster) {
-    throw new AppError('MASTER_OWNER_PROTECTED')
-  }
-  if (!wasMaster) return data
-
-  // Our own code and the person's own login/verify flows have no other user in `req`.
-  if (req.user && req.user.id !== originalDoc.id) throw new AppError('MASTER_OWNER_PROTECTED')
-  if (data.role !== undefined && data.role !== 'superadmin') {
-    throw new AppError('MASTER_OWNER_PROTECTED')
-  }
-  return data
-}
-
-/** The master owner's account cannot be deleted. */
-export const protectMasterOwnerOnDelete: CollectionBeforeDeleteHook = async ({ id, req }) => {
-  const user = await req.payload.findByID({
-    collection: 'users',
-    id,
-    depth: 0,
-    overrideAccess: true,
-    req,
-  })
-  if (user.isMasterOwner === true) throw new AppError('MASTER_OWNER_PROTECTED')
 }
 
 async function assertAnotherSuperadminExists(
@@ -176,16 +123,6 @@ export const enforcePasswordLength: CollectionBeforeOperationHook = ({ args, ope
     }
   }
   return args
-}
-
-/** Owner-promotion requests point at users, so they go first when a user is deleted. */
-export const removeOwnerPromotions: CollectionBeforeDeleteHook = async ({ id, req }) => {
-  await req.payload.delete({
-    collection: 'owner-promotions',
-    where: { or: [{ target: { equals: id } }, { requestedBy: { equals: id } }] },
-    overrideAccess: true,
-    req,
-  })
 }
 
 /**

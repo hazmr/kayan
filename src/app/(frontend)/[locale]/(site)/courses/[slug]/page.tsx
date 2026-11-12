@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation'
 import { CoursePrice } from '@/components/courses/CoursePrice'
 import { PurchaseBox } from '@/components/courses/PurchaseBox'
 import { getCurrentUser } from '@/lib/auth/getCurrentUser'
+import { siteName } from '@/lib/site'
 import { getPublishedCourse, hasFullAccessTo } from '@/lib/catalog'
 import { resumeAt, summarizeProgress } from '@/lib/progress/calculate'
 import { getCompletedLessons } from '@/lib/progress/progress'
@@ -19,7 +20,9 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const [{ slug }, locale] = await Promise.all([params, getLocale()])
   const course = await getPublishedCourse(slug, locale)
-  return course ? { title: `${course.title} | Vetudy`, description: course.description } : {}
+  return course
+    ? { title: `${course.title} | ${siteName(locale)}`, description: course.description }
+    : {}
 }
 
 export default async function CoursePage({ params }: PageProps) {

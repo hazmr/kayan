@@ -10,7 +10,7 @@ export function requireUser(req: PayloadRequest): User {
   return req.user
 }
 
-/** The logged-in user, who must also be a manager or the owner. */
+/** The logged-in user, who must also be the Admin or an instructor. */
 export function requireStaff(req: PayloadRequest): User {
   const user = requireUser(req)
   if (!isStaff(user)) throw new AppError('FORBIDDEN')

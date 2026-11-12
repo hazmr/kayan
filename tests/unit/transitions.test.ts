@@ -53,27 +53,19 @@ describe('order status diagram', () => {
 })
 
 describe('course status diagram', () => {
-  it('lets a doctor only send a draft for review', () => {
-    expect(nextStatusesFor('draft', ['owner'])).toEqual(['in_review'])
-    expect(nextStatusesFor('in_review', ['owner'])).toEqual([])
-    expect(nextStatusesFor('published', ['owner'])).toEqual([])
-    expect(nextStatusesFor('archived', ['owner'])).toEqual([])
+  it('goes draft -> published -> archived -> published, with no review step', () => {
+    expect(nextStatusesFor('draft')).toEqual(['published'])
+    expect(nextStatusesFor('published')).toEqual(['archived'])
+    expect(nextStatusesFor('archived')).toEqual(['published'])
   })
 
-  it('lets managers and the owner publish, send back, archive, and unarchive', () => {
-    for (const actor of ['manager', 'superadmin'] as const) {
-      expect(nextStatusesFor('draft', [actor])).toEqual(['in_review'])
-      expect(nextStatusesFor('in_review', [actor]).sort()).toEqual(['draft', 'published'])
-      expect(nextStatusesFor('published', [actor])).toEqual(['archived'])
-      expect(nextStatusesFor('archived', [actor])).toEqual(['published'])
+  it('never goes back to draft once a course has been published', () => {
+    for (const status of COURSE_STATUSES) {
+      if (status !== 'draft') expect(COURSE_TRANSITIONS[status]).not.toContain('draft')
     }
   })
 
-  it('offers nothing to someone with no claim on the course', () => {
-    for (const status of COURSE_STATUSES) expect(nextStatusesFor(status, [])).toEqual([])
-  })
-
-  it('never lets a course go straight from draft to published', () => {
-    expect(COURSE_TRANSITIONS.draft.published).toBeUndefined()
+  it('has exactly three statuses', () => {
+    expect([...COURSE_STATUSES].sort()).toEqual(['archived', 'draft', 'published'])
   })
 })

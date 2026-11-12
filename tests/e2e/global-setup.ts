@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { testEnv } from '../support/env'
 import { prepareDatabase } from '../support/prepareDatabase'
 
-export const E2E_DATABASE = 'vetudy_e2e'
+export const E2E_DATABASE = 'kayan_e2e'
 export const E2E_PORT = 3100
 
 // Before the browser test: a fresh database (built from the real migrations) and its seed data.

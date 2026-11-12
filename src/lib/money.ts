@@ -8,10 +8,10 @@ export function egpToPiasters(egp: number): number {
 }
 
 /**
- * The doctor's cut of a sale, in piasters, rounded down.
- * Rounding down means the platform keeps any leftover piaster, and the doctor is never overpaid.
+ * The Admin's cut of a sale, in piasters, rounded down.
+ * Rounding down means the academy keeps any leftover piaster, and the Admin is never overpaid.
  */
-export function ownerShare(amountPiasters: number, percent: number): number {
+export function adminShare(amountPiasters: number, percent: number): number {
   return Math.floor((amountPiasters * percent) / 100)
 }
 

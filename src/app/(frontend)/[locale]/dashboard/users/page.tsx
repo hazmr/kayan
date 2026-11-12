@@ -8,10 +8,7 @@ interface PageProps {
 }
 
 export default async function DashboardUsersPage({ searchParams }: PageProps) {
-  const [user, { q }] = await Promise.all([
-    requireDashboardUser('superadmin', 'manager'),
-    searchParams,
-  ])
+  const [user, { q }] = await Promise.all([requireDashboardUser('superadmin'), searchParams])
   const search = typeof q === 'string' ? q : ''
 
   return (

@@ -6,9 +6,8 @@ import { env } from '@/lib/env'
 import { bilingualSubject, renderBilingualEmail } from './layout'
 
 const ROLE_NAMES: Record<Role, { ar: string; en: string }> = {
-  superadmin: { ar: 'مالك المنصة', en: 'Owner' },
-  manager: { ar: 'مدير', en: 'Manager' },
-  admin: { ar: 'طبيب', en: 'Doctor' },
+  superadmin: { ar: 'مسؤول النظام', en: 'Admin' },
+  admin: { ar: 'المحاضر', en: 'Instructor' },
   student: { ar: 'طالب', en: 'Student' },
 }
 

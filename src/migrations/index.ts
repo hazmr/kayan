@@ -7,6 +7,9 @@ import * as migration_20261111_221900_open_order_index from './20261111_221900_o
 import * as migration_20261111_225744_payouts from './20261111_225744_payouts';
 import * as migration_20261112_021533_master_owner from './20261112_021533_master_owner';
 import * as migration_20261112_024249_lesson_progress from './20261112_024249_lesson_progress';
+import * as migration_20261112_145459_one_academy_roles from './20261112_145459_one_academy_roles';
+import * as migration_20261112_151246_academy_money from './20261112_151246_academy_money';
+import * as migration_20261112_160000_admin_is_id_zero from './20261112_160000_admin_is_id_zero';
 
 export const migrations = [
   {
@@ -52,6 +55,21 @@ export const migrations = [
   {
     up: migration_20261112_024249_lesson_progress.up,
     down: migration_20261112_024249_lesson_progress.down,
-    name: '20261112_024249_lesson_progress'
+    name: '20261112_024249_lesson_progress',
+  },
+  {
+    up: migration_20261112_145459_one_academy_roles.up,
+    down: migration_20261112_145459_one_academy_roles.down,
+    name: '20261112_145459_one_academy_roles',
+  },
+  {
+    up: migration_20261112_151246_academy_money.up,
+    down: migration_20261112_151246_academy_money.down,
+    name: '20261112_151246_academy_money',
+  },
+  {
+    up: migration_20261112_160000_admin_is_id_zero.up,
+    down: migration_20261112_160000_admin_is_id_zero.down,
+    name: '20261112_160000_admin_is_id_zero'
   },
 ];

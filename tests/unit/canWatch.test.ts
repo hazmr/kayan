@@ -4,7 +4,7 @@ import { canWatch } from '@/lib/enrollments/canWatchLesson'
 
 describe('who may watch a lesson', () => {
   it('lets someone with the whole course watch every lesson, even in an archived course', () => {
-    for (const courseStatus of ['draft', 'in_review', 'published', 'archived'] as const) {
+    for (const courseStatus of ['draft', 'published', 'archived'] as const) {
       expect(canWatch({ hasFullAccess: true, courseStatus, isFreePreview: false })).toBe(true)
     }
   })
@@ -16,7 +16,7 @@ describe('who may watch a lesson', () => {
   })
 
   it('keeps a free preview closed while the course is not public', () => {
-    for (const courseStatus of ['draft', 'in_review', 'archived'] as const) {
+    for (const courseStatus of ['draft', 'archived'] as const) {
       expect(canWatch({ hasFullAccess: false, courseStatus, isFreePreview: true })).toBe(false)
     }
   })

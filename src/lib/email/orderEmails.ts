@@ -148,12 +148,12 @@ export function sendRefundedEmail(ctx: OrderEmailContext): Promise<void> {
   )
 }
 
-/** Tells every manager and owner that a receipt is waiting for them. */
+/** Tells the Admin and every instructor that a receipt is waiting. */
 export async function sendReceiptSubmittedEmail(ctx: OrderEmailContext): Promise<void> {
   const { courseTitle, order, student, payload } = ctx
   const { docs } = await payload.find({
     collection: 'users',
-    where: { role: { in: ['superadmin', 'manager'] } },
+    where: { role: { in: ['superadmin', 'admin'] } },
     depth: 0,
     limit: 100,
     overrideAccess: true,

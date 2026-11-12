@@ -5,7 +5,6 @@ import { useState, type FormEvent } from 'react'
 
 import { ROLES, type Role } from '@/access/roles'
 import { FormError } from '@/components/auth/FormError'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,7 +34,7 @@ interface UserManagerProps {
 
 type Pending = { kind: 'role'; user: UserRow; to: Role } | { kind: 'delete'; user: UserRow } | null
 
-/** Roles an owner may give when creating an account. Owners are made by changing a role later. */
+/** Roles the Admin may give. Nobody is made Admin from here: there is exactly one. */
 const CREATABLE_ROLES = ROLES.filter((role) => role !== 'superadmin')
 
 export function UserManager({ users, currentUserId, canManage, search }: UserManagerProps) {
@@ -93,11 +92,6 @@ export function UserManager({ users, currentUserId, canManage, search }: UserMan
                           {t('users.you')}
                         </Badge>
                       )}
-                      {user.master && (
-                        <Badge className="ms-2" title={t('users.masterLocked')}>
-                          {t('users.master')}
-                        </Badge>
-                      )}
                     </td>
                     <td className="px-4 py-2" dir="ltr">
                       {user.email}
@@ -108,7 +102,7 @@ export function UserManager({ users, currentUserId, canManage, search }: UserMan
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      {canManage && !isSelf && !user.master ? (
+                      {canManage && !isSelf && user.role !== 'superadmin' ? (
                         <select
                           className={selectClass}
                           // Always shows the saved role. Choosing another opens the confirmation.
@@ -118,28 +112,20 @@ export function UserManager({ users, currentUserId, canManage, search }: UserMan
                             setPending({ kind: 'role', user, to: event.target.value as Role })
                           }
                         >
-                          {ROLES.map((role) => (
+                          {CREATABLE_ROLES.map((role) => (
                             <option key={role} value={role}>
                               {t(`roles.${role}`)}
                             </option>
                           ))}
                         </select>
                       ) : (
-                        <span
-                          title={
-                            user.master
-                              ? t('users.masterLocked')
-                              : isSelf && canManage
-                                ? t('users.selfLocked')
-                                : undefined
-                          }
-                        >
+                        <span title={isSelf && canManage ? t('users.selfLocked') : undefined}>
                           {t(`roles.${user.role}`)}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-end">
-                      {canManage && !isSelf && !user.master && (
+                      {canManage && !isSelf && user.role !== 'superadmin' && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -179,9 +165,7 @@ function ConfirmWithPassword({
   const t = useTranslations('dashboard')
   const { run, pending: busy, errorCode } = useApiAction()
   const [password, setPassword] = useState('')
-  const [emailSent, setEmailSent] = useState(false)
   const { user } = pending
-  const makingOwner = pending.kind === 'role' && pending.to === 'superadmin'
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -190,28 +174,7 @@ function ConfirmWithPassword({
         ? sendJson('POST', `/api/users/${user.id}/role`, { role: pending.to, password })
         : sendJson('POST', `/api/users/${user.id}/delete`, { password }),
     )
-    if (!result.ok) return
-    // An owner promotion is not done yet: it waits for the link in the owner's email.
-    if (makingOwner) setEmailSent(true)
-    else onClose()
-  }
-
-  if (emailSent) {
-    return (
-      <Dialog open onOpenChange={(open) => !open && onClose()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('users.changeRoleTitle')}</DialogTitle>
-            <DialogDescription>{t('users.ownerEmailSent', { name: user.name })}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" onClick={onClose}>
-              {t('users.sendAgain')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    )
+    if (result.ok) onClose()
   }
 
   return (
@@ -233,13 +196,6 @@ function ConfirmWithPassword({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {makingOwner && (
-            <Alert variant="destructive">
-              <AlertDescription>
-                {t('users.ownerWarning')} {t('users.ownerTwoSteps')}
-              </AlertDescription>
-            </Alert>
-          )}
           {pending.kind === 'role' && (
             <p className="text-sm text-muted-foreground">
               {t('users.emailNotice', { name: user.name })}

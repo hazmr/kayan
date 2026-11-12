@@ -4,12 +4,12 @@ import { lastMonths, monthKey, summarizeRevenue, type RevenueOrder } from '@/lib
 
 const NOW = new Date('2026-11-12T10:00:00Z')
 
+// A EGP 400 sale with the Admin on 30%: EGP 120 to the Admin, EGP 280 stays with the academy.
 function order(overrides: Partial<RevenueOrder> = {}): RevenueOrder {
   return {
     courseId: 'course-a',
-    doctorId: 'doctor-a',
     amount: 40000,
-    ownerAmount: 28000,
+    adminAmount: 12000,
     status: 'paid',
     paidAt: '2026-11-05T10:00:00Z',
     ...overrides,
@@ -34,31 +34,40 @@ describe('monthKey and lastMonths', () => {
 })
 
 describe('summarizeRevenue', () => {
-  it('splits what students paid into the platform share and the doctors share', () => {
+  it("splits what students paid into the academy's share and the Admin's share", () => {
     const result = summarizeRevenue([order(), order()], [], NOW)
     expect(result).toMatchObject({
       gross: 80000,
-      doctors: 56000,
-      platform: 24000,
+      admin: 24000,
+      academy: 56000,
       sales: 2,
-      paidOut: 0,
-      owed: 56000,
+      paidToAdmin: 0,
+      owedToAdmin: 24000,
     })
-    expect(result.platform + result.doctors).toBe(result.gross)
+    expect(result.admin + result.academy).toBe(result.gross)
   })
 
-  it('keeps the leftover piaster with the platform when a share was rounded down', () => {
-    // 70% of 10001 = 7000.7, rounded down when the order was frozen.
-    const result = summarizeRevenue([order({ amount: 10001, ownerAmount: 7000 })], [], NOW)
-    expect(result).toMatchObject({ gross: 10001, doctors: 7000, platform: 3001 })
+  it('uses the share frozen on each order, so sales made at different percents add up correctly', () => {
+    const result = summarizeRevenue(
+      [order({ adminAmount: 12000 }), order({ adminAmount: 4000 })], // 30% then 10%
+      [],
+      NOW,
+    )
+    expect(result).toMatchObject({ gross: 80000, admin: 16000, academy: 64000 })
+  })
+
+  it('keeps the leftover piaster with the academy when the share was rounded down', () => {
+    // 30% of 10001 = 3000.3, rounded down when the order was frozen.
+    const result = summarizeRevenue([order({ amount: 10001, adminAmount: 3000 })], [], NOW)
+    expect(result).toMatchObject({ gross: 10001, admin: 3000, academy: 7001 })
   })
 
   it('leaves refunded orders out of every total and shows them on their own line', () => {
     const result = summarizeRevenue([order(), order({ status: 'refunded' })], [], NOW)
     expect(result).toMatchObject({
       gross: 40000,
-      doctors: 28000,
-      platform: 12000,
+      admin: 12000,
+      academy: 28000,
       sales: 1,
       refundedCount: 1,
       refundedAmount: 40000,
@@ -66,50 +75,36 @@ describe('summarizeRevenue', () => {
   })
 
   it('counts free enrollments apart: they are not sales and carry no money', () => {
-    const result = summarizeRevenue([order({ amount: 0, ownerAmount: 0 })], [], NOW)
+    const result = summarizeRevenue([order({ amount: 0, adminAmount: 0 })], [], NOW)
     expect(result).toMatchObject({ gross: 0, sales: 0, freeEnrollments: 1 })
     expect(result.perCourse).toEqual([])
-    expect(result.perDoctor).toEqual([])
   })
 
-  it('subtracts payouts to get what is still owed, and the owed amount may go negative', () => {
-    const paid = summarizeRevenue([order()], [{ doctorId: 'doctor-a', amount: 10000 }], NOW)
-    expect(paid).toMatchObject({ paidOut: 10000, owed: 18000 })
-    expect(paid.perDoctor[0]).toMatchObject({ doctorId: 'doctor-a', paidOut: 10000, owed: 18000 })
-
-    // Paid 28000, then the order was refunded: the doctor was overpaid.
-    const refundedAfterPayout = summarizeRevenue(
-      [order({ status: 'refunded' })],
-      [{ doctorId: 'doctor-a', amount: 28000 }],
-      NOW,
-    )
-    expect(refundedAfterPayout.owed).toBe(-28000)
-    expect(refundedAfterPayout.perDoctor[0]?.owed).toBe(-28000)
+  it('subtracts payments to the Admin, and what is owed may go negative after a refund', () => {
+    expect(summarizeRevenue([order()], [{ amount: 5000 }], NOW)).toMatchObject({
+      paidToAdmin: 5000,
+      owedToAdmin: 7000,
+    })
+    // Paid 12000, then the order was refunded: the Admin was paid in advance.
+    expect(
+      summarizeRevenue([order({ status: 'refunded' })], [{ amount: 12000 }], NOW).owedToAdmin,
+    ).toBe(-12000)
   })
 
-  it('groups by doctor and by course, biggest first', () => {
+  it('groups by course, biggest first', () => {
     const result = summarizeRevenue(
       [
-        order({ courseId: 'c1', doctorId: 'd1' }),
-        order({ courseId: 'c2', doctorId: 'd2', amount: 100000, ownerAmount: 70000 }),
-        order({ courseId: 'c2', doctorId: 'd2', amount: 100000, ownerAmount: 70000 }),
+        order({ courseId: 'c1' }),
+        order({ courseId: 'c2', amount: 100000, adminAmount: 30000 }),
+        order({ courseId: 'c2', amount: 100000, adminAmount: 30000 }),
       ],
       [],
       NOW,
     )
-    expect(result.perCourse.map((row) => [row.courseId, row.sales, row.gross])).toEqual([
-      ['c2', 2, 200000],
-      ['c1', 1, 40000],
+    expect(result.perCourse.map((row) => [row.courseId, row.sales, row.gross, row.admin])).toEqual([
+      ['c2', 2, 200000, 60000],
+      ['c1', 1, 40000, 12000],
     ])
-    expect(result.perDoctor.map((row) => [row.doctorId, row.platform, row.doctors])).toEqual([
-      ['d2', 60000, 140000],
-      ['d1', 12000, 28000],
-    ])
-  })
-
-  it('shows a doctor who only has payouts (no sales left) with a negative owed amount', () => {
-    const result = summarizeRevenue([], [{ doctorId: 'd9', amount: 500 }], NOW)
-    expect(result.perDoctor).toEqual([expect.objectContaining({ doctorId: 'd9', owed: -500 })])
   })
 
   it('buckets sales by month, with empty months included and old sales left out of the table', () => {
@@ -124,7 +119,12 @@ describe('summarizeRevenue', () => {
       NOW,
     )
     expect(result.months).toHaveLength(6)
-    expect(result.months[0]).toMatchObject({ month: '2026-11', sales: 1, gross: 40000 })
+    expect(result.months[0]).toMatchObject({
+      month: '2026-11',
+      sales: 1,
+      gross: 40000,
+      admin: 12000,
+    })
     expect(result.months[1]).toMatchObject({ month: '2026-10', sales: 2, gross: 80000 })
     expect(result.months[2]).toMatchObject({ month: '2026-09', sales: 0, gross: 0 })
     // The old sale still counts in the all-time total, just not in the table.

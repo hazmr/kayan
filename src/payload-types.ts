@@ -73,12 +73,11 @@ export interface Config {
     categories: Category;
     media: Media;
     users: User;
-    'owner-promotions': OwnerPromotion;
     orders: Order;
     receipts: Receipt;
     enrollments: Enrollment;
     'lesson-progress': LessonProgress;
-    payouts: Payout;
+    'admin-payments': AdminPayment;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -99,12 +98,11 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
-    'owner-promotions': OwnerPromotionsSelect<false> | OwnerPromotionsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     receipts: ReceiptsSelect<false> | ReceiptsSelect<true>;
     enrollments: EnrollmentsSelect<false> | EnrollmentsSelect<true>;
     'lesson-progress': LessonProgressSelect<false> | LessonProgressSelect<true>;
-    payouts: PayoutsSelect<false> | PayoutsSelect<true>;
+    'admin-payments': AdminPaymentsSelect<false> | AdminPaymentsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -166,10 +164,8 @@ export interface Course {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
-  status: 'draft' | 'in_review' | 'published' | 'archived';
-  reviewNote?: string | null;
+  status: 'draft' | 'published' | 'archived';
   owner: string | User;
-  ownerSharePercent?: number | null;
   /**
    * Lowercase English letters, numbers, and dashes. Leave empty to generate one.
    */
@@ -281,8 +277,7 @@ export interface User {
   id: string;
   name: string;
   phone?: string | null;
-  isMasterOwner?: boolean | null;
-  role: 'superadmin' | 'manager' | 'admin' | 'student';
+  role: 'superadmin' | 'admin' | 'student';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -307,29 +302,14 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "owner-promotions".
- */
-export interface OwnerPromotion {
-  id: string;
-  target: string | User;
-  requestedBy: string | User;
-  tokenHash: string;
-  expiresAt: string;
-  confirmedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders".
  */
 export interface Order {
   id: string;
   user: string | User;
   course: string | Course;
-  owner?: (string | null) | User;
   amount: number;
-  ownerAmount?: number | null;
+  adminAmount?: number | null;
   amountFrozenAt?: string | null;
   provider?: ('manual' | 'paymob') | null;
   method?: ('instapay' | 'vodafone_cash') | null;
@@ -399,14 +379,13 @@ export interface LessonProgress {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payouts".
+ * via the `definition` "admin-payments".
  */
-export interface Payout {
+export interface AdminPayment {
   id: string;
-  owner: string | User;
   amount: number;
   paidAt: string;
-  paidBy: string | User;
+  recordedBy: string | User;
   note?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -460,10 +439,6 @@ export interface PayloadLockedDocument {
         value: string | User;
       } | null)
     | ({
-        relationTo: 'owner-promotions';
-        value: string | OwnerPromotion;
-      } | null)
-    | ({
         relationTo: 'orders';
         value: string | Order;
       } | null)
@@ -480,8 +455,8 @@ export interface PayloadLockedDocument {
         value: string | LessonProgress;
       } | null)
     | ({
-        relationTo: 'payouts';
-        value: string | Payout;
+        relationTo: 'admin-payments';
+        value: string | AdminPayment;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -537,9 +512,7 @@ export interface CoursesSelect<T extends boolean = true> {
   price?: T;
   modules?: T;
   status?: T;
-  reviewNote?: T;
   owner?: T;
-  ownerSharePercent?: T;
   slug?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -622,7 +595,6 @@ export interface MediaSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   phone?: T;
-  isMasterOwner?: T;
   role?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -646,27 +618,13 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "owner-promotions_select".
- */
-export interface OwnerPromotionsSelect<T extends boolean = true> {
-  target?: T;
-  requestedBy?: T;
-  tokenHash?: T;
-  expiresAt?: T;
-  confirmedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders_select".
  */
 export interface OrdersSelect<T extends boolean = true> {
   user?: T;
   course?: T;
-  owner?: T;
   amount?: T;
-  ownerAmount?: T;
+  adminAmount?: T;
   amountFrozenAt?: T;
   provider?: T;
   method?: T;
@@ -733,13 +691,12 @@ export interface LessonProgressSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payouts_select".
+ * via the `definition` "admin-payments_select".
  */
-export interface PayoutsSelect<T extends boolean = true> {
-  owner?: T;
+export interface AdminPaymentsSelect<T extends boolean = true> {
   amount?: T;
   paidAt?: T;
-  paidBy?: T;
+  recordedBy?: T;
   note?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -790,10 +747,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface PlatformSetting {
   id: string;
-  /**
-   * Copied onto each new course. Changing it does not affect existing courses.
-   */
-  defaultOwnerSharePercent: number;
+  adminSharePercent: number;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -813,7 +767,7 @@ export interface PaymentSetting {
  * via the `definition` "platform-settings_select".
  */
 export interface PlatformSettingsSelect<T extends boolean = true> {
-  defaultOwnerSharePercent?: T;
+  adminSharePercent?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

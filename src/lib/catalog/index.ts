@@ -167,6 +167,20 @@ export async function searchPublishedCourses(options: CatalogSearch): Promise<Ca
   }
 }
 
+/** How much there is to learn: published courses and their lessons. Shown on the home page. */
+export async function getCatalogStats(): Promise<{ courses: number; lessons: number }> {
+  const payload = await getPayload({ config })
+  const [courses, lessons] = await Promise.all([
+    payload.count({ collection: 'courses', where: PUBLISHED, overrideAccess: true }),
+    payload.count({
+      collection: 'lessons',
+      where: { 'course.status': { equals: 'published' } },
+      overrideAccess: true,
+    }),
+  ])
+  return { courses: courses.totalDocs, lessons: lessons.totalDocs }
+}
+
 /** One published course with its outline. Null when it does not exist or is not public. */
 export async function getPublishedCourse(
   slug: string,
