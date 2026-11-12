@@ -4,6 +4,13 @@ import { getPayload } from 'payload'
 import { relationId } from '@/collections/shared/relationId'
 import type { Locale } from '@/i18n/locales'
 import type { CatalogImage } from '@/lib/catalog/types'
+import {
+  resumeAt,
+  summarizeProgress,
+  type CourseProgress,
+  type LearnState,
+} from '@/lib/progress/calculate'
+import { getCompletedLessons } from '@/lib/progress/progress'
 import type { Course, User } from '@/payload-types'
 
 export interface MyCourse {
@@ -15,8 +22,11 @@ export interface MyCourse {
   lessonCount: number
   /** An archived course is no longer sold, but its students keep access. */
   archived: boolean
-  /** Where "Continue learning" goes. Absent when the course has no lessons yet. */
-  firstLessonId: string | null
+  /** Where "Continue learning" goes: the first lesson not completed yet. Null when there are no lessons. */
+  resumeLessonId: string | null
+  /** What the button says: start, continue, or review (everything is completed). */
+  learnState: LearnState
+  progress: CourseProgress
 }
 
 /**
@@ -64,15 +74,20 @@ export async function listMyCourses(user: User, locale: Locale): Promise<MyCours
   ])
 
   const modulePosition = new Map(modules.docs.map((item) => [item.id, item.position]))
+  const completedByCourse = await getCompletedLessons(user.id, courseIds)
 
   return courses.map((course): MyCourse => {
     const own = lessons.docs.filter((lesson) => relationId(lesson.course) === course.id)
-    // The first lesson is the first one of the first module.
-    const first = [...own].sort(
-      (a, b) =>
-        (modulePosition.get(relationId(a.module) ?? '') ?? 0) -
-          (modulePosition.get(relationId(b.module) ?? '') ?? 0) || a.position - b.position,
-    )[0]
+    // Course order: by module, then by position inside the module.
+    const ordered = [...own]
+      .sort(
+        (a, b) =>
+          (modulePosition.get(relationId(a.module) ?? '') ?? 0) -
+            (modulePosition.get(relationId(b.module) ?? '') ?? 0) || a.position - b.position,
+      )
+      .map((lesson) => lesson.id)
+    const completed = completedByCourse.get(course.id) ?? new Set<string>()
+    const resume = resumeAt(ordered, completed)
     const doctor = typeof course.owner === 'object' ? course.owner : null
     const image = typeof course.thumbnail === 'object' ? course.thumbnail : null
     const imageUrl = image?.sizes?.card?.url ?? image?.url
@@ -85,7 +100,9 @@ export async function listMyCourses(user: User, locale: Locale): Promise<MyCours
       thumbnail: imageUrl ? { url: imageUrl, alt: image?.alt ?? course.title ?? '' } : null,
       lessonCount: own.length,
       archived: course.status === 'archived',
-      firstLessonId: first?.id ?? null,
+      resumeLessonId: resume?.lessonId ?? null,
+      learnState: resume?.state ?? 'start',
+      progress: summarizeProgress(ordered, completed),
     }
   })
 }

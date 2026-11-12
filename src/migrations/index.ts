@@ -5,6 +5,8 @@ import * as migration_20261111_093723_owner_promotions from './20261111_093723_o
 import * as migration_20261111_221800_orders from './20261111_221800_orders';
 import * as migration_20261111_221900_open_order_index from './20261111_221900_open_order_index';
 import * as migration_20261111_225744_payouts from './20261111_225744_payouts';
+import * as migration_20261112_021533_master_owner from './20261112_021533_master_owner';
+import * as migration_20261112_024249_lesson_progress from './20261112_024249_lesson_progress';
 
 export const migrations = [
   {
@@ -40,6 +42,16 @@ export const migrations = [
   {
     up: migration_20261111_225744_payouts.up,
     down: migration_20261111_225744_payouts.down,
-    name: '20261111_225744_payouts'
+    name: '20261111_225744_payouts',
+  },
+  {
+    up: migration_20261112_021533_master_owner.up,
+    down: migration_20261112_021533_master_owner.down,
+    name: '20261112_021533_master_owner',
+  },
+  {
+    up: migration_20261112_024249_lesson_progress.up,
+    down: migration_20261112_024249_lesson_progress.down,
+    name: '20261112_024249_lesson_progress'
   },
 ];

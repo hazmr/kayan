@@ -9,6 +9,8 @@ import { CoursePrice } from '@/components/courses/CoursePrice'
 import { PurchaseBox } from '@/components/courses/PurchaseBox'
 import { getCurrentUser } from '@/lib/auth/getCurrentUser'
 import { getPublishedCourse, hasFullAccessTo } from '@/lib/catalog'
+import { resumeAt, summarizeProgress } from '@/lib/progress/calculate'
+import { getCompletedLessons } from '@/lib/progress/progress'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -33,7 +35,15 @@ export default async function CoursePage({ params }: PageProps) {
 
   const totalMinutes = Math.round(course.totalSeconds / 60)
   const fullAccess = await hasFullAccessTo(user, course)
-  const firstLessonId = course.modules.flatMap((courseModule) => courseModule.lessons)[0]?.id
+  const lessonIds = course.modules.flatMap((courseModule) =>
+    courseModule.lessons.map((lesson) => lesson.id),
+  )
+  // A student who owns the course continues where they stopped; others just see the outline.
+  const completed =
+    fullAccess && user && user.role === 'student'
+      ? ((await getCompletedLessons(user.id, [course.id])).get(course.id) ?? new Set<string>())
+      : new Set<string>()
+  const resume = resumeAt(lessonIds, completed)
 
   return (
     <article className="mx-auto grid max-w-5xl gap-8 px-4 py-10 lg:grid-cols-[1fr_320px]">
@@ -128,10 +138,17 @@ export default async function CoursePage({ params }: PageProps) {
           <CoursePrice priceEgp={course.priceEgp} className="text-2xl font-bold text-primary" />
           <PurchaseBox
             courseId={course.id}
+            ownerId={course.ownerId}
             slug={course.slug}
             priceEgp={course.priceEgp}
             user={user}
-            firstLessonId={firstLessonId}
+            resumeLessonId={resume?.lessonId}
+            learnState={resume?.state}
+            progress={
+              user?.role === 'student' && fullAccess
+                ? summarizeProgress(lessonIds, completed)
+                : undefined
+            }
           />
         </div>
       </aside>

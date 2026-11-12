@@ -12,6 +12,7 @@ import { Courses } from '@/collections/Courses'
 import { Lessons } from '@/collections/Lessons'
 import { Media } from '@/collections/Media'
 import { Enrollments } from '@/collections/Enrollments'
+import { LessonProgress } from '@/collections/LessonProgress'
 import { Modules } from '@/collections/Modules'
 import { Orders } from '@/collections/Orders'
 import { OwnerPromotions } from '@/collections/OwnerPromotions'
@@ -50,6 +51,7 @@ export default buildConfig({
     Orders,
     Receipts,
     Enrollments,
+    LessonProgress,
     Payouts,
   ],
   globals: [PlatformSettings, PaymentSettings],

@@ -1,4 +1,9 @@
-import type { CollectionBeforeValidateHook, CollectionConfig, FieldAccess } from 'payload'
+import type {
+  CollectionBeforeDeleteHook,
+  CollectionBeforeValidateHook,
+  CollectionConfig,
+  FieldAccess,
+} from 'payload'
 
 import { createCourseContent, editCourseContent, readCourseContent } from '@/access/courses'
 import { isStaff } from '@/access/roles'
@@ -59,6 +64,16 @@ const readVideoId: FieldAccess<Lesson> = async ({ req, doc }) => {
   return allowed
 }
 
+/** Students' "completed" marks point at the lesson, so they go first when a lesson is deleted. */
+const removeLessonProgress: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  await req.payload.delete({
+    collection: 'lesson-progress',
+    where: { lesson: { equals: id } },
+    overrideAccess: true,
+    req,
+  })
+}
+
 export const Lessons: CollectionConfig = {
   slug: 'lessons',
   labels: collectionLabels(['Lesson', 'درس'], ['Lessons', 'الدروس']),
@@ -75,6 +90,7 @@ export const Lessons: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [requireArabic(['title']), syncCourseFromModule],
+    beforeDelete: [removeLessonProgress],
   },
   fields: [
     {

@@ -3,7 +3,10 @@ import { Lock } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
+import { LessonCompleteButton } from '@/components/courses/LessonCompleteButton'
+import { ProgressBar } from '@/components/courses/ProgressBar'
 import { WatchSidebar } from '@/components/courses/WatchSidebar'
+import { summarizeProgress } from '@/lib/progress/calculate'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { getCurrentUser } from '@/lib/auth/getCurrentUser'
@@ -36,6 +39,11 @@ export default async function LessonPage({ params }: PageProps) {
 
   const { course, current, previous, next, position } = page
   const here = `/courses/${slug}/lessons/${lessonId}`
+  const completedIds = new Set(page.progress.completedIds)
+  const progress = summarizeProgress(
+    page.modules.flatMap((courseModule) => courseModule.lessons.map((lesson) => lesson.id)),
+    completedIds,
+  )
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1fr_340px]">
@@ -67,11 +75,14 @@ export default async function LessonPage({ params }: PageProps) {
             </p>
             {!page.loggedIn && <p className="text-sm text-muted-foreground">{t('lockedGuest')}</p>}
             <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild>
-                <Link href={`/courses/${slug}`}>
-                  {course.priceEgp === 0 ? t('enroll') : t('buy')}
-                </Link>
-              </Button>
+              {/* Only students buy; a doctor or staff member sees the plain explanation. */}
+              {(!user || user.role === 'student') && (
+                <Button asChild>
+                  <Link href={`/courses/${slug}`}>
+                    {course.priceEgp === 0 ? t('enroll') : t('buy')}
+                  </Link>
+                </Button>
+              )}
               {!page.loggedIn && (
                 <>
                   <Button asChild variant="outline">
@@ -93,6 +104,10 @@ export default async function LessonPage({ params }: PageProps) {
           </p>
         </div>
 
+        {page.kind === 'ok' && page.progress.trackable && (
+          <LessonCompleteButton lessonId={current.id} completed={completedIds.has(current.id)} />
+        )}
+
         <div className="flex flex-wrap justify-between gap-2">
           {previous?.watchable ? (
             <Button asChild variant="outline">
@@ -109,8 +124,14 @@ export default async function LessonPage({ params }: PageProps) {
         </div>
       </div>
 
-      <aside>
-        <WatchSidebar modules={page.modules} courseSlug={slug} currentId={current.id} />
+      <aside className="flex flex-col gap-4">
+        {page.progress.trackable && <ProgressBar progress={progress} label={t('progressTitle')} />}
+        <WatchSidebar
+          modules={page.modules}
+          courseSlug={slug}
+          currentId={current.id}
+          completedIds={page.progress.completedIds}
+        />
       </aside>
     </div>
   )

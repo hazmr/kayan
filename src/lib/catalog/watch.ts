@@ -3,7 +3,9 @@ import { getPayload } from 'payload'
 
 import { relationId } from '@/collections/shared/relationId'
 import type { Locale } from '@/i18n/locales'
+import { hasRole } from '@/access/roles'
 import { canWatch, hasFullCourseAccess } from '@/lib/enrollments/canWatchLesson'
+import { getCompletedLessons } from '@/lib/progress/progress'
 import { piastersToEgp } from '@/lib/money'
 import { getVideoProvider } from '@/lib/video'
 import type { User } from '@/payload-types'
@@ -30,6 +32,8 @@ interface WatchBase {
   previous: WatchLessonRef | null
   next: WatchLessonRef | null
   position: { number: number; total: number }
+  /** Only a student who owns the course tracks progress; for everyone else `trackable` is false. */
+  progress: { trackable: boolean; completedIds: string[] }
 }
 
 export type WatchPage =
@@ -115,6 +119,10 @@ export async function getWatchPage(
   const current = flat[index]
   if (!current) return { kind: 'notFound' }
 
+  const trackable = hasFullAccess && hasRole(user, 'student')
+  const completed =
+    trackable && user ? (await getCompletedLessons(user.id, [course.id])).get(course.id) : undefined
+
   const base: WatchBase = {
     course: {
       id: course.id,
@@ -127,6 +135,7 @@ export async function getWatchPage(
     previous: flat[index - 1] ?? null,
     next: flat[index + 1] ?? null,
     position: { number: index + 1, total: flat.length },
+    progress: { trackable, completedIds: [...(completed ?? [])] },
   }
 
   if (!current.watchable) return { kind: 'locked', loggedIn: user !== null, ...base }

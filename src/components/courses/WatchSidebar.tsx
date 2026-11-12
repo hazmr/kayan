@@ -1,4 +1,4 @@
-import { Lock, Play } from 'lucide-react'
+import { CircleCheck, Lock, Play } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import { Badge } from '@/components/ui/badge'
@@ -10,11 +10,15 @@ export async function WatchSidebar({
   modules,
   courseSlug,
   currentId,
+  completedIds,
 }: {
   modules: WatchModule[]
   courseSlug: string
   currentId: string
+  /** Lessons this student has completed. Empty for people who do not track progress. */
+  completedIds: string[]
 }) {
+  const done = new Set(completedIds)
   const t = await getTranslations('watch')
 
   return (
@@ -28,7 +32,9 @@ export async function WatchSidebar({
               const current = lesson.id === currentId
               const row = (
                 <>
-                  {lesson.watchable ? (
+                  {done.has(lesson.id) ? (
+                    <CircleCheck className="size-4 shrink-0 text-primary" aria-hidden />
+                  ) : lesson.watchable ? (
                     <Play className="size-4 shrink-0 text-primary" aria-hidden />
                   ) : (
                     <Lock className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -43,6 +49,7 @@ export async function WatchSidebar({
                         <Badge variant="secondary">{t('freePreview')}</Badge>
                       )}
                       {!lesson.watchable && <span className="sr-only">{t('lockedLesson')}</span>}
+                      {done.has(lesson.id) && <span className="sr-only">{t('completed')}</span>}
                     </span>
                   </span>
                 </>

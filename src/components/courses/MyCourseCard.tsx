@@ -4,13 +4,16 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
+
+import { ProgressBar } from './ProgressBar'
 import type { MyCourse } from '@/lib/enrollments/myCourses'
 
 export function MyCourseCard({ course }: { course: MyCourse }) {
   const t = useTranslations('myCourses')
-  const learnHref = course.firstLessonId
-    ? `/courses/${course.slug}/lessons/${course.firstLessonId}`
+  const learnHref = course.resumeLessonId
+    ? `/courses/${course.slug}/lessons/${course.resumeLessonId}`
     : `/courses/${course.slug}`
+  const { progress } = course
 
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border bg-card">
@@ -33,6 +36,7 @@ export function MyCourseCard({ course }: { course: MyCourse }) {
             {t('lessons', { count: course.lessonCount })}
           </p>
         </div>
+        {progress.total > 0 && <ProgressBar progress={progress} label={t('progressLabel')} />}
         {course.archived && (
           <div className="flex flex-col gap-1">
             <Badge variant="outline" className="self-start">
@@ -42,7 +46,7 @@ export function MyCourseCard({ course }: { course: MyCourse }) {
         )}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
           <Button asChild>
-            <Link href={learnHref}>{t('continue')}</Link>
+            <Link href={learnHref}>{t(`learn.${course.learnState}`)}</Link>
           </Button>
           <Link
             href={`/courses/${course.slug}`}
