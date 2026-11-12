@@ -1,6 +1,7 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 
 import { isSuperadmin, roleOf, ROLES, type Role } from '@/access/roles'
+import { passwordMatches } from '@/lib/auth/verifyPassword'
 import { AppError } from '@/lib/errors/AppError'
 import { MIN_PASSWORD_LENGTH } from '@/lib/errors/codes'
 import {
@@ -18,14 +19,6 @@ function readString(body: unknown, key: string): string | null {
 
 async function readBody(req: PayloadRequest): Promise<unknown> {
   return req.json?.().catch(() => null)
-}
-
-/** Checks a password by logging in with it. Failed tries count toward the account lock. */
-async function passwordMatches(email: string, password: string, req: PayloadRequest) {
-  return req.payload
-    .login({ collection: 'users', data: { email, password } })
-    .then(() => true)
-    .catch(() => false)
 }
 
 /**
