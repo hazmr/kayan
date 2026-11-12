@@ -25,7 +25,7 @@ function renderSection(section: EmailSection, direction: 'rtl' | 'ltr', lang: st
   const action = section.action
     ? `<p style="margin:20px 0 8px;">
          <a href="${escapeHtml(section.action.url)}"
-            style="display:inline-block;padding:12px 24px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;">
+            style="display:inline-block;padding:12px 24px;background:#1e40af;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;">
            ${escapeHtml(section.action.label)}
          </a>
        </p>
