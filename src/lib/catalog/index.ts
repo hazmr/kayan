@@ -7,6 +7,7 @@ import { piastersToEgp } from '@/lib/money'
 import { hasFullCourseAccess } from '@/lib/enrollments/canWatchLesson'
 import type { Course, User } from '@/payload-types'
 
+import { CATALOG_PAGE_SIZE, sortOrder, type CatalogPrice, type CatalogSort } from './params'
 import type { CategoryNode, CourseCardData, CourseDetail, ModuleOutline } from './types'
 
 // Read functions for the public site. They bypass access control on purpose and compensate
@@ -103,6 +104,67 @@ export async function listPublishedCourses(options: {
     sort: '-createdAt',
   })
   return docs.map(toCard)
+}
+
+export interface CatalogSearch {
+  locale: Locale
+  categorySlug?: string
+  /** Already cleaned with cleanSearch. Matches the title in either language, and the doctor's name. */
+  search?: string
+  sort?: CatalogSort
+  price?: CatalogPrice
+  page?: number
+}
+
+export interface CatalogPage {
+  courses: CourseCardData[]
+  page: number
+  totalPages: number
+  totalDocs: number
+}
+
+/**
+ * The catalog with search, sorting, a price filter, and pages. Published courses only: the
+ * published filter is always one half of an `and`, so no search word can widen it.
+ */
+export async function searchPublishedCourses(options: CatalogSearch): Promise<CatalogPage> {
+  const payload = await getPayload({ config })
+  const filters: Where[] = [PUBLISHED]
+
+  if (options.categorySlug) {
+    const ids = await categoryIdsFor(options.categorySlug)
+    if (!ids) return { courses: [], page: 1, totalPages: 0, totalDocs: 0 }
+    // Choosing a main category also shows courses filed under its subcategories.
+    filters.push({ category: { in: ids } })
+  }
+  if (options.search) {
+    filters.push({
+      or: [
+        { 'title.ar': { contains: options.search } },
+        { 'title.en': { contains: options.search } },
+        { 'owner.name': { contains: options.search } },
+      ],
+    })
+  }
+  if (options.price === 'free') filters.push({ price: { equals: 0 } })
+  if (options.price === 'paid') filters.push({ price: { greater_than: 0 } })
+
+  const result = await payload.find({
+    collection: 'courses',
+    where: { and: filters },
+    depth: 1,
+    limit: CATALOG_PAGE_SIZE,
+    page: options.page ?? 1,
+    locale: options.locale,
+    overrideAccess: true,
+    sort: sortOrder(options.sort ?? 'newest'),
+  })
+  return {
+    courses: result.docs.map(toCard),
+    page: result.page ?? 1,
+    totalPages: result.totalPages,
+    totalDocs: result.totalDocs,
+  }
 }
 
 /** One published course with its outline. Null when it does not exist or is not public. */

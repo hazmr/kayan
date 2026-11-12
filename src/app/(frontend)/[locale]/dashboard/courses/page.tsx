@@ -7,11 +7,18 @@ import { pick } from '@/lib/dashboard/localized'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { COURSE_STATUSES, type CourseStatus } from '@/lib/courses/transitions'
-import { listCourses } from '@/lib/dashboard/queries'
+import { CatalogPager } from '@/components/courses/CatalogPager'
+import { Input } from '@/components/ui/input'
+import { cleanSearch, parsePage } from '@/lib/catalog/params'
+import { searchCourses } from '@/lib/dashboard/queries'
 import { requireDashboardUser } from '@/lib/dashboard/requireUser'
 
 interface PageProps {
-  searchParams: Promise<{ status?: string | string[] }>
+  searchParams: Promise<{
+    status?: string | string[]
+    q?: string | string[]
+    page?: string | string[]
+  }>
 }
 
 function toStatus(value: string | string[] | undefined): CourseStatus | undefined {
@@ -19,16 +26,21 @@ function toStatus(value: string | string[] | undefined): CourseStatus | undefine
 }
 
 export default async function DashboardCoursesPage({ searchParams }: PageProps) {
-  const [user, { status }, locale, t, format] = await Promise.all([
+  const [user, raw, locale, t, format] = await Promise.all([
     requireDashboardUser(),
     searchParams,
     getLocale(),
     getTranslations('dashboard'),
     getFormatter(),
   ])
-  const selected = toStatus(status)
+  const selected = toStatus(raw.status)
+  const search = cleanSearch(raw.q)
   const staff = isStaff(user)
-  const courses = await listCourses(user, selected)
+  const { rows: courses, ...paging } = await searchCourses(user, {
+    status: selected,
+    search,
+    page: parsePage(raw.page),
+  })
 
   const tabs: { status?: CourseStatus; label: string }[] = [
     { label: t('courses.all') },
@@ -44,17 +56,34 @@ export default async function DashboardCoursesPage({ searchParams }: PageProps) 
         </Button>
       </div>
 
+      <form method="get" role="search" className="flex gap-2">
+        {selected && <input type="hidden" name="status" value={selected} />}
+        <Input
+          name="q"
+          type="search"
+          defaultValue={search}
+          maxLength={80}
+          placeholder={staff ? t('courses.searchStaff') : t('courses.searchMine')}
+          aria-label={staff ? t('courses.searchStaff') : t('courses.searchMine')}
+        />
+        <Button type="submit" variant="outline">
+          {t('common.search')}
+        </Button>
+      </form>
+
       <nav className="flex flex-wrap gap-2">
         {tabs.map((tab) => {
           const active = tab.status === selected
           return (
             <Link
               key={tab.status ?? 'all'}
-              href={
-                tab.status
-                  ? { pathname: '/dashboard/courses', query: { status: tab.status } }
-                  : '/dashboard/courses'
-              }
+              href={{
+                pathname: '/dashboard/courses',
+                query: {
+                  ...(tab.status ? { status: tab.status } : {}),
+                  ...(search ? { q: search } : {}),
+                },
+              }}
               aria-current={active ? 'page' : undefined}
               className={
                 active
@@ -74,8 +103,10 @@ export default async function DashboardCoursesPage({ searchParams }: PageProps) 
 
       {courses.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-card p-8 text-center">
-          <p className="font-medium">{t('courses.empty')}</p>
-          {!selected && <p className="text-sm text-muted-foreground">{t('courses.emptyHint')}</p>}
+          <p className="font-medium">{search ? t('courses.noMatch') : t('courses.empty')}</p>
+          {!selected && !search && (
+            <p className="text-sm text-muted-foreground">{t('courses.emptyHint')}</p>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
@@ -128,6 +159,13 @@ export default async function DashboardCoursesPage({ searchParams }: PageProps) 
           </table>
         </div>
       )}
+
+      <CatalogPager
+        page={paging.page}
+        totalPages={paging.totalPages}
+        pathname="/dashboard/courses"
+        query={{ status: selected, q: search || undefined }}
+      />
     </section>
   )
 }
